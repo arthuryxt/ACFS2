@@ -1,0 +1,9 @@
+BWA_folder	/home/bin/bwa037a/
+BWA_genome_Index	/data/.../BWAIndex/genome.fa
+ACF_folder	/home/bin/ACFS2/
+Agtf	myGenes.agtf
+UNMAP	UNMAP
+Seq_len	300
+make_AS	0
+minSplicingScore	0
+remove_temp	yes

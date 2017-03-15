@@ -56,7 +56,7 @@ Optional parameters, the values in below are set as default:
 | --------- | ----- | ---- |
 | bowtie2_folder | /home/bin/bowtie2/  | path of the folder of bowtie2. Bowtie2 can be more sensitive in dealing with multiple mapping. Bowtie2 will be used for abundance quantification insteand of BWA if provided |
 | remove_temp | yes | set to "no" to keep all temp files |
-| make_AS | yes | set to "no" to focus on the BSJ |
+| make_AS | 1 | set to 0 to assume all internal exons are presented in the circRNA |
 | Thread | 16 | number of threads used in bwa |
 | BWA_seed_length | 16 | bwa seed length  |
 | BWA_min_score | 20 | bwa min score to trigger report. For shorter reads, e.g. 50nt, set to 10 or lower could report more circRNAs at risk of higher FDR |
@@ -127,10 +127,6 @@ Optional parameters, the values in below are set as default:
     ```
     perl convert_unmapped_SAM_to_fa_for_acfs.pl <output_file_name> <unmapped.sam> sample_id
     ```
-
-
-
-
 
 
 
