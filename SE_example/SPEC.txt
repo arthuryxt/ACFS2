@@ -1,0 +1,10 @@
+BWA_folder	/Users/arthur/Desktop/Dev/bwa0715/
+BWA_genome_Index	myGenome.fa
+ACF_folder	/Users/arthur/Desktop/Dev/acfs2/
+Agtf	myGenes.agtf
+UNMAP	UNMAP
+Seq_len	150
+make_AS	0
+minSplicingScore	0
+remove_temp	yes
+Search_trans_splicing	no
