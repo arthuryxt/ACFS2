@@ -1,5 +1,6 @@
 #!/usr/bin/perl -w
 use strict;
+# make stupid split exons regardless of junctions
 die "Usage: $0  \"output\"   \"input\"   \"\(optional\)input_2 ... \" " if (@ARGV < 2);
 my $fileout=$ARGV[0];    
 my $fileins=scalar(@ARGV);
@@ -63,159 +64,184 @@ for(my $fileNr=1; $fileNr<$fileins; $fileNr++) {
 }
 
 foreach my $id (keys %uniq) {
-    my %INTEx;
+    my %L;
+    my %R;
+    my %pair;
     foreach my $tid (keys %{$Internals{$id}}) {
         my @Ttmp=split("\t",$Internals{$id}{$tid});
-        my @Stmp=sort {$a <=> $b} @Ttmp;
-        my $Nr=scalar(@Stmp);
-        for(my $i=1; $i<($Nr-1); $i++) { $INTEx{$Stmp[$i]}=1; }
+        my $Nr=scalar(@Ttmp)/2;
+        my %tmp;
+        for(my $i=0; $i<$Nr; $i++) { $tmp{$Ttmp[2*$i]}=$Ttmp[2*$i+1]; }
+        my @Stmp;
+        $Nr=0;
+        foreach my $pos (sort{$a <=> $b} keys %tmp){ $Stmp[$Nr]=$pos; $Nr++; $Stmp[$Nr]=$tmp{$pos}; $Nr++;}
+        undef %tmp;
+        $Nr=scalar(@Stmp)/2;
+        for(my $i=0; $i<$Nr; $i++) {
+            if (($i>0) and (($Stmp[2*$i] - $Stmp[2*$i-1]) <= 1)) {
+                print "Warning1: Two exons overlaps. Gene = ".$id."   Transcript = ".$tid,"\n";
+                print join("\t",$Stmp[2*$i-2],$Stmp[2*$i-1],$Stmp[2*$i],$Stmp[2*$i+1]),"\n";
+                delete $pair{$Stmp[2*$i-2]}{$Stmp[2*$i-1]};
+                $pair{$Ttmp[2*$i-2]}{$Ttmp[2*$i+1]}=1;
+                delete $R{$Stmp[2*$i-1]};
+                $R{$Stmp[2*$i+1]}=2;
+            }
+            else{
+                $pair{$Ttmp[2*$i]}{$Ttmp[2*$i+1]}=1;
+                $L{$Ttmp[2*$i]}=1;
+                $R{$Ttmp[2*$i+1]}=2;
+            }
+        }
     }
-    my %T;
-    my $minT=999999999;
-    my $maxT=-1;
+    my %border;
+    foreach my $pos (sort{$a <=> $b} keys %L) {
+        if (exists $border{$pos}) { $border{$pos}+=1; }
+        else {  $border{$pos}=1; }
+    }
+    foreach my $pos (sort{$a <=> $b} keys %R) {
+        if (exists $border{$pos}) { $border{$pos}+=2; }
+        else {  $border{$pos}=2; }
+    }
+    my $cond="L";     # L for sit on a left-border and is connecting to a right-border; R for sit on a right border and will break
+    my @Start;
+    my @End;
+    my $exoncnt=0;
+    my %splitpos;
+    foreach my $pos (sort{$a <=> $b} keys %border) {
+        if ($debug > 0) {
+            print $pos,"\t",$border{$pos},"\t",$exoncnt,"\n";
+            my $tmp="Left";
+            for(my $i=1 > ($exoncnt-5) ? 1 : ($exoncnt-5); $i<$exoncnt; $i++){ $tmp=$tmp."\t".$Start[$i]; }
+            print $tmp,"\n";
+            $tmp="Rght";
+            for(my $i=1 > ($exoncnt-5) ? 1 : ($exoncnt-5); $i<$exoncnt; $i++){ $tmp=$tmp."\t".$End[$i]; }
+            print $tmp,"\n";
+        }
+        
+        if ($exoncnt eq 0) {
+            $exoncnt++;
+            $cond="L";
+            $Start[$exoncnt]=$pos;
+        }
+        else {
+            if ($cond eq "L") {
+                if ($border{$pos} eq 1) {
+                    # tandem exon
+                    $End[$exoncnt]=$pos-1;
+                    $splitpos{$pos-1}=1;
+                    $exoncnt++;
+                    $Start[$exoncnt]=$pos;
+                    $cond="L";
+                }
+                elsif ($border{$pos} eq 2) {
+                    $End[$exoncnt]=$pos;
+                    $cond="R";
+                }
+                elsif ($border{$pos} eq 3) {
+                    print "Warning2: Two exons overlaps. Gene = ".$id."   exon border = ".$pos,"\n";
+                    $End[$exoncnt]=$pos-1;
+                    $exoncnt++;
+                    $Start[$exoncnt]=$pos;
+                    $End[$exoncnt]=$pos;
+                    $exoncnt++;
+                    $Start[$exoncnt]=$pos+1;
+                    $splitpos{$pos-1}=1;
+                    $splitpos{$pos}=1;
+                    $splitpos{$pos+1}=1;
+                    $cond="L";
+                }
+            }
+            else {
+                if ($border{$pos} eq 1) {
+                    $exoncnt++;
+                    $Start[$exoncnt]=$pos;
+                    $cond="L";
+                }
+                elsif ($border{$pos} eq 2) {
+                    $exoncnt++;
+                    $Start[$exoncnt]=$End[$exoncnt-1]+1;
+                    $splitpos{$End[$exoncnt-1]+1}=1;
+                    $End[$exoncnt]=$pos;
+                    $cond="R";
+                }
+                else {
+                    print "Warning3: Two exons overlaps. Gene = ".$id."   exon border = ".$pos,"\n";
+                    $exoncnt++;
+                    $Start[$exoncnt]=$pos;
+                    $End[$exoncnt]=$pos;
+                    $splitpos{$pos}=1;
+                    $cond="R";
+                }
+            }
+        }
+    }
+    # check all exon borders to handel retained intron
+    my %newpairs;
+    for(my $i=1; $i<=$exoncnt; $i++) { $newpairs{$Start[$i]}=$End[$i]; }
+    foreach my $lpos (sort{$a <=> $b} keys %pair) {
+        foreach my $rpos (sort{$a <=> $b} keys %{$pair{$lpos}}) {
+            my $newcnt=0;
+            my @newL;
+            my @newR;
+            foreach my $pos (sort{$a <=> $b} keys %newpairs) {
+                if (($lpos <= $pos) and ($newpairs{$pos} <= $rpos)) {
+                    if ($pos eq $lpos) {
+                        $newcnt=1;
+                        $newL[$newcnt]=$pos;
+                        $newR[$newcnt]=$newpairs{$pos};
+                    }
+                    else {
+                        $newcnt++;
+                        $newL[$newcnt]=$pos;
+                        $newR[$newcnt]=$newpairs{$pos};
+                    }
+                }
+            }
+            for(my $i=1; $i<$newcnt; $i++) {
+                if (($newL[$i+1] - $newR[$i]) > 1) {
+                    $newpairs{$newR[$i]+1}=$newL[$i+1]-1;
+                    $splitpos{$newR[$i]+1}=1;
+                    $splitpos{$newL[$i+1]-1}=1;
+                }
+            }
+        }
+    }
+    my %Term;
     foreach my $tid (keys %{$Terminals{$id}}) {
         my @Ttmp=split("\t",$Terminals{$id}{$tid});
-        if (!exists $INTEx{$Ttmp[0]}) { $T{$Ttmp[0]}=$Ttmp[1]; }
-        if (!exists $INTEx{$Ttmp[1]}) { $T{$Ttmp[1]}=$Ttmp[0]; }
-        if ($minT > $Ttmp[0]) { $minT=$Ttmp[0]; }
-        if ($maxT < $Ttmp[1]) { $maxT=$Ttmp[1]; }
+        $Term{$Ttmp[0]}=1;
+        $Term{$Ttmp[1]}=1;
+        my $Nr=scalar(@Ttmp)/2;
     }
-    my %tmp;
-    my %End;
-    foreach my $left (sort {$a <=> $b} keys %{$uniq{$id}}) {
-        foreach my $right (sort {$a <=> $b} keys %{$uniq{$id}{$left}}) {
-            $tmp{$right}=1;
-            $End{$right}=1;
-        }
-        $tmp{$left}=2;
+    my @chrinfo=split("\t",$id);
+    my @FStart;
+    my @FEnd;
+    my $Fr=0;
+    foreach my $pos (sort{$a <=> $b} keys %newpairs) {
+        $Fr++;
+        $FStart[$Fr]=$pos;
+        $FEnd[$Fr]=$newpairs{$pos};
     }
-    
-    foreach my $left (sort {$a <=> $b} keys %{$uniq{$id}}) {
-        foreach my $right (sort {$a <=> $b} keys %{$uniq{$id}{$left}}) {
-            foreach my $test_end (sort {$a <=> $b} keys %End) {
-                if (($left < $test_end) and ($test_end < $right)) {$End{$test_end}++;}
-            }
+    if ($chrinfo[1] eq "+") {
+        for(my $i=1; $i<=$Fr; $i++) {
+            my $splicing="";
+            if ((exists $Term{$FStart[$i]}) or (exists $splitpos{$FStart[$i]})) { $splicing="0"; }
+            else { $splicing="1"; }
+            if ((exists $Term{$FEnd[$i]}) or (exists $splitpos{$FEnd[$i]})) { $splicing=$splicing."0"; }
+            else { $splicing=$splicing."1"; }
+            print OUT join("\t",$chrinfo[1],"split","exon",$FStart[$i],$FEnd[$i],$biotype{$id},$chrinfo[2],$Gname{$id},$chrinfo[0]."___".$i."___".$Fr."___".$splicing),"\n";
         }
-    }
-    if ($debug eq 1) {
-        my $tmp="";
-        foreach my $i (sort{$a <=> $b} keys %tmp) {
-            if ($tmp eq "") {$tmp=$i."\t".$tmp{$i};}
-            else {$tmp=$tmp."\n".$i."\t".$tmp{$i}}
-        }
-        print "tmp:\n",$tmp,"\n";
-        $tmp="";
-        foreach my $i (sort{$a <=> $b} keys %End) {
-            if ($tmp eq "") {$tmp=$i."\t".$End{$i};}
-            else {$tmp=$tmp."\n".$i."\t".$End{$i}}
-        }
-        print "End:\n",$tmp,"\n";
-        $tmp="";
-        foreach my $i (sort{$a <=> $b} keys %T) {
-            if ($tmp eq "") {$tmp=$i;}
-            else {$tmp=$tmp."\n".$i;}
-        }
-        print "Terminal:\n",$tmp,"\n";
-    }
-    
-    my @border=();
-    my $Nr=0;
-    my $last=-1;
-    my $usedrightborder=-1;
-    my %used;
-    foreach my $pos (sort{$a <=> $b} keys %tmp) {
-        if ($debug eq 1) { print join("\t","debug_loop_start",$Nr,$last,$pos),"\n"; }
-        if ($last eq -1) { $last=$pos; }
-        #elsif ($usedrightborder eq $last) { $last=$pos; }
-        else {
-            if (exists $End{$last}) {   # $last could be a right_border, therefore $pos could be a left_border
-                if ($debug eq 1) {print $tmp{$last},"\t",$End{$last},"\t",$tmp{$pos},"\n";}
-                if ($End{$last} > 1) {  # $last is middle_border
-                    if ((exists $T{$pos}) and ($pos ne $maxT) and ($pos ne $minT)) {
-                        #$last=$usedrightborder;
-                    }
-                    elsif ((exists $T{$last}) and ($last ne $maxT) and ($last ne $minT)) {
-                        $last=$pos;
-                    }
-                    elsif ($tmp{$pos} eq 2) {  # $pos is a left_border
-                        #if ($usedrightborder eq $last) {
-                        #}
-                        #else{
-                            my $p5=($last+1);
-                            my $p3=($pos-1);
-                            if ($p5 <= $p3) { $border[$Nr]=$p5."\t".$p3; $Nr++; $usedrightborder=$p3; }
-                        #}
-                        $last=$pos;
-                    }
-                    else { 
-                        my $p5=($last+1);
-                        my $p3=($pos);
-                        if ($p5 <= $p3) { $border[$Nr]=$p5."\t".$p3; $Nr++; $usedrightborder=$p3; }
-                        $last=$pos;
-                    }
-                }
-                else { $last=$pos; }
-            }
-            else {  # $last is a left_border; and $pos could be a right_border
-                if ($debug eq 1) {print $tmp{$last},"\tNA\t",$tmp{$pos},"\n";}
-                if ((exists $T{$pos}) and ($pos ne $maxT) and ($pos ne $minT)) {  # $pos is a transcript terminal, and should not serve as a splicing site
-                    # don't update $last, find a new $pos,
-                }
-                elsif ((exists $T{$last}) and ($last ne $maxT) and ($last ne $minT)) {
-                    $last=$pos;
-                }
-                elsif ($tmp{$pos} eq 2) {  # $pos is a left_border, minus 1 to prepare for the adjacent exon
-                    my $p5=($last);
-                    my $p3=($pos-1);
-                    if ($p5 <= $p3) { $border[$Nr]=$p5."\t".$p3; $Nr++; $usedrightborder=$p3; }
-                    $last=$pos;
-                } 
-                else {  # $pos is a right_border
-                    my $p5=($last);
-                    my $p3=($pos);
-                    if ($p5 <= $p3) { $border[$Nr]=$p5."\t".$p3; $Nr++; $usedrightborder=$p3; }
-                    $last=$pos;
-                }
-            }
-        }
-        if (($debug eq 1) and ($Nr > 0)){
-            my $tmp=$border[0];
-            for(my $i=1; $i<$Nr; $i++) { $tmp=$tmp."\t".$border[$i];}
-            print $tmp,"\n debug_loop_end \n";
-        }
-    }
-    if ($debug eq 1) {print $tmp{$last},"\t",$End{$last},"\n";}
-    if (($debug eq 2) and (!exists $End{$last})) {
-        foreach my $left (sort {$a <=> $b} keys %{$uniq{$id}}) {
-            foreach my $right (sort {$a <=> $b} keys %{$uniq{$id}{$left}}) {
-                print join("\t",$id,$left,$right,$uniq{$id}{$left}{$right}),"\n";
-            }
-        }
-    }
-    if (($tmp{$last} eq 2) and ($End{$last} eq 1)) { $border[$Nr]=$last."\t".$last; $Nr++; }
-    
-    my @a=split("\t",$id);
-    my $start_g=-1;
-    my $end_g=-1;
-    my $biotype_g="";
-    my $gene_id="";
-    my $chr="";
-    my $strand="";
-    if ($a[2] eq "+") {
-        for (my $i=0; $i<$Nr; $i++) {
-            print OUT join("\t",$a[1],"split","exon",$border[$i],$biotype{$id},$a[2],$Gname{$id},$a[0]."___".($i+1)."___".$Nr),"\n";
-            my @b=split("\t",$border[$i]);
-            if ($start_g eq -1) {$start_g=$b[0]; $chr=$a[1]; $biotype_g=$biotype{$id}; $gene_id=$a[0]; $strand=$a[2];}
-            if ($end_g < $b[1]) {$end_g=$b[1];}
-        }
+        print OUT2 join("\t",$chrinfo[1],"split","exon",$FStart[1],$FEnd[$exoncnt],$biotype{$id},$chrinfo[2],$Gname{$id},$chrinfo[0]),"\n";
     }
     else {
-        for (my $i=0; $i<$Nr; $i++) {
-            print OUT join("\t",$a[1],"split","exon",$border[$i],$biotype{$id},$a[2],$Gname{$id},$a[0]."___".($Nr - $i)."___".$Nr),"\n";
-            my @b=split("\t",$border[$i]);
-            if ($start_g eq -1) {$start_g=$b[0]; $chr=$a[1]; $biotype_g=$biotype{$id}; $gene_id=$a[0]; $strand=$a[2];}
-            if ($end_g < $b[1]) {$end_g=$b[1];}
+        for(my $i=1; $i<=$Fr; $i++) {
+            my $splicing="";
+            if ((exists $Term{$FStart[$i]}) or (exists $splitpos{$FStart[$i]})) { $splicing="0"; }
+            else { $splicing="1"; }
+            if ((exists $Term{$FEnd[$i]}) or (exists $splitpos{$FEnd[$i]})) { $splicing=$splicing."0"; }
+            else { $splicing=$splicing."1"; }
+            print OUT join("\t",$chrinfo[1],"split","exon",$FStart[$i],$FEnd[$i],$biotype{$id},$chrinfo[2],$Gname{$id},$chrinfo[0]."___".($Fr-$i+1)."___".$Fr."___".$splicing),"\n";
         }
+        print OUT2 join("\t",$chrinfo[1],"split","exon",$FStart[1],$FEnd[$exoncnt],$biotype{$id},$chrinfo[2],$Gname{$id},$chrinfo[0]),"\n";
     }
-    print OUT2 join("\t",$chr,$Nr,"gene",$start_g,$end_g,$biotype_g,$strand,$Gname{$id},$gene_id),"\n";
 }
