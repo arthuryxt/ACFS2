@@ -222,26 +222,13 @@ foreach my $id (keys %uniq) {
         $FStart[$Fr]=$pos;
         $FEnd[$Fr]=$newpairs{$pos};
     }
-    if ($chrinfo[1] eq "+") {
-        for(my $i=1; $i<=$Fr; $i++) {
-            my $splicing="";
-            if ((exists $Term{$FStart[$i]}) or (exists $splitpos{$FStart[$i]})) { $splicing="0"; }
-            else { $splicing="1"; }
-            if ((exists $Term{$FEnd[$i]}) or (exists $splitpos{$FEnd[$i]})) { $splicing=$splicing."0"; }
-            else { $splicing=$splicing."1"; }
-            print OUT join("\t",$chrinfo[1],"split","exon",$FStart[$i],$FEnd[$i],$biotype{$id},$chrinfo[2],$Gname{$id},$chrinfo[0]."___".$i."___".$Fr."___".$splicing),"\n";
-        }
-        print OUT2 join("\t",$chrinfo[1],"split","exon",$FStart[1],$FEnd[$exoncnt],$biotype{$id},$chrinfo[2],$Gname{$id},$chrinfo[0]),"\n";
+    for(my $i=1; $i<=$Fr; $i++) {
+        my $splicing="";
+        if ((exists $Term{$FStart[$i]}) or (exists $splitpos{$FStart[$i]})) { $splicing="0"; }
+        else { $splicing="1"; }
+        if ((exists $Term{$FEnd[$i]}) or (exists $splitpos{$FEnd[$i]})) { $splicing=$splicing."0"; }
+        else { $splicing=$splicing."1"; }
+        print OUT join("\t",$chrinfo[1],"split","exon",$FStart[$i],$FEnd[$i],$biotype{$id},$chrinfo[2],$Gname{$id},$chrinfo[0]."___".$i."___".$Fr."___".$splicing),"\n";
     }
-    else {
-        for(my $i=1; $i<=$Fr; $i++) {
-            my $splicing="";
-            if ((exists $Term{$FStart[$i]}) or (exists $splitpos{$FStart[$i]})) { $splicing="0"; }
-            else { $splicing="1"; }
-            if ((exists $Term{$FEnd[$i]}) or (exists $splitpos{$FEnd[$i]})) { $splicing=$splicing."0"; }
-            else { $splicing=$splicing."1"; }
-            print OUT join("\t",$chrinfo[1],"split","exon",$FStart[$i],$FEnd[$i],$biotype{$id},$chrinfo[2],$Gname{$id},$chrinfo[0]."___".($Fr-$i+1)."___".$Fr."___".$splicing),"\n";
-        }
-        print OUT2 join("\t",$chrinfo[1],"split","exon",$FStart[1],$FEnd[$exoncnt],$biotype{$id},$chrinfo[2],$Gname{$id},$chrinfo[0]),"\n";
-    }
+    print OUT2 join("\t",$chrinfo[1],"split","exon",$FStart[1],$FEnd[$exoncnt],$biotype{$id},$chrinfo[2],$Gname{$id},$chrinfo[0]),"\n";
 }

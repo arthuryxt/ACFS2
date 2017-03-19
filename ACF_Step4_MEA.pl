@@ -89,6 +89,7 @@ while(<IN>) {
     my $gene_name2=$left[0];
     for(my $i=1; $i<=$Nr; $i++) {
         my @b=split("\t",$anno{$left[0]}{$i+$start-1});
+        if ($debug > 0) {print join("\t",@b),"\n";}
         my $info=join(" ","gene_id","\"$cid\"\;","transcript_id","\"$cid\"\;","gene_name","\"$gene_name\"\;","gene_name2","\"$gene_name2\"\;","exon_number","\"$i\"");
         my $tmp_s=$b[3];
         my $tmp_e=$b[4];
@@ -104,6 +105,7 @@ while(<IN>) {
                 elsif($i eq $Nr) { $tmp_s=$a[3];  }
             }
         }
+        if ($debug > 0) {print join("\t",$b[0],$b[1],$b[2],$tmp_s,$tmp_e,$b[5],$b[6],$b[7]),"\n";}
         print OUT join("\t",$b[0],$b[1],$b[2],$tmp_s,$tmp_e,$b[5],$b[6],$b[7],$info),"\n";
         if ($strand eq "+") {
             $ExonL[$i-1]=$tmp_s;
@@ -116,7 +118,7 @@ while(<IN>) {
             $ExonLen[$Nr-$i]=$tmp_e+1-$tmp_s;
         }
     }
-    if (($do_not_fix eq 1) and (($ExonL[0] ne $a[3]) or ($ExonR[$Nr-1] ne ($a[2]+1)))) {
+    if (($do_not_fix eq 1) and (($ExonL[0] ne $a[3]) or ($ExonR[$Nr-1] ne ($a[2])))) {
         print OUT3 "fix-border\t",join("\t",@a),"\n";
         $ExonL[0]=$a[3];
         $ExonR[$Nr-1]=$a[2];

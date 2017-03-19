@@ -1,15 +1,17 @@
 #!/usr/bin/perl -w
 use strict;
 # check splicing sites for every single circRNA candidates. Require stranded sequencing and the sequencing reads are reverse-complementary to mRNA
-die "Usage: $0  \"output basename\"  \"CB_splice_folder\"  \"selected_circ_reads\"  \"genome_fasta\"   \"\(optional\) extend N bases\"  \"\(optional\)debug==0\"" if (@ARGV < 4);
+die "Usage: $0  \"output basename\"  \"CB_splice_folder\"  \"selected_circ_reads\"  \"genome_fasta\"   \"\(optional\) strandness=="-"\"   \"\(optional\) extend_N_bases==15\"  \"\(optional\)debug==0\"" if (@ARGV < 4);
 my $fileout=$ARGV[0];
 my $DIR=$ARGV[1];		# /home/arthur/CB_splice/
 my $anno=$ARGV[2];      # unmap.parsed.2pp.S1
 my $genome=$ARGV[3];    # /data/iGenome/mouse/Ensembl/NCBIM37/Sequence/WholeGenomeFasta/genome.fa
+my $strandess="-";      # "-" assumes Truseq_stranded_RNASeq, "+" the otherway around, "no" assumes no strandness
+if (scalar(@ARGV) > 4) {$strandess=$ARGV[4];}
 my $Extend=15;           # 15nt by default. as 3' splice strength need 23nt, 20nt from intron and 3 from exon.
-if (scalar(@ARGV) > 4) {$Extend=$ARGV[4];}
+if (scalar(@ARGV) > 5) {$Extend=$ARGV[5];}
 my $debug=0;
-if (scalar(@ARGV) > 5) {$debug=$ARGV[5];}
+if (scalar(@ARGV) > 6) {$debug=$ARGV[6];}
 
 my %uniq;
 
@@ -255,7 +257,7 @@ foreach my $chr (sort keys %CHRSEQ) {
         foreach my $end (sort keys %{$uniq{$chr}{$start}}) {
             foreach my $seqid (keys %{$uniq{$chr}{$start}{$end}}) {
                 my @a=split("\t",$uniq{$chr}{$start}{$end}{$seqid});
-				if ($a[7] eq "+") {
+				if ((($strandess eq "-") and ($a[7] eq "+")) or ($strandess eq "no") or (($strandess eq "+") and ($a[7] eq "-"))) {
 					# R+m-
 					my $overlap=$a[3]+$a[4]-$a[8];
                     #my $overlap=$a[3]+($a[6]-$a[5]+1)-$a[8];
@@ -442,7 +444,7 @@ foreach my $chr (sort keys %CHRSEQ) {
                         print OUT2 join("\t",@a),"\n";
 					}
 				}
-				else {
+				if ((($strandess eq "-") and ($a[7] eq "-")) or ($strandess eq "no") or (($strandess eq "+") and ($a[7] eq "+")))  {
 					# R-m+
 					my $overlap=$a[8]+$a[9]-$a[3];
                     #my $overlap=$a[8]+($a[11]-$a[10]+1)-$a[3];
@@ -519,8 +521,6 @@ foreach my $chr (sort keys %CHRSEQ) {
                         $right_pos=0;
                         my @SScoreL;
                         my @SScoreR;
-                        
-
                         for(my $k=0; $k<=$Overlap; $k++) {
                             my $str1="";
                             $str1=uc substr($left_seq,(2*$Extend+1-$k-3),9);

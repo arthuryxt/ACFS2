@@ -1,19 +1,21 @@
 #!/usr/bin/perl -w
 use strict;
 # rescue circ spanning very short exons
-die "Usage: $0   \"multiple_segments\"   \"CB_splice_folder\"   \"genome_fasta\"   \"\(optional\) extend N bases\"   \"\(optional\)split_exon_gtf\"  \"\(optional\) fuzzy exon border recognition\"     \"\(DEBUG\)\"" if (@ARGV < 3);
+die "Usage: $0   \"multiple_segments\"   \"CB_splice_folder\"   \"genome_fasta\"    \"\(optional\) strandness=="-"\"  \"\(optional\) extend N bases\"   \"\(optional\)split_exon_gtf\"  \"\(optional\) fuzzy exon border recognition\"     \"\(DEBUG\)\"" if (@ARGV < 3);
 my $fileout=$ARGV[0];
 my $DIR=$ARGV[1];		# /home/arthur/CB_splice/
 my $genome=$ARGV[2];    # /data/iGenome/mouse/Ensembl/NCBIM37/Sequence/WholeGenomeFasta/genome.fa
+my $strandess="-";      # "-" assumes Truseq_stranded_RNASeq, "+" the otherway around, "no" assumes no stranded
+if (scalar(@ARGV) > 3) {$strandess=$ARGV[3];}
 my $Extend=15;           # 15nt by default. as 3' splice strength need 23nt, 20nt from intron and 3 from exon.
-if (scalar(@ARGV) > 3) {$Extend=$ARGV[3];}
+if (scalar(@ARGV) > 4) {$Extend=$ARGV[4];}
 my $agtf="no";
-if (scalar(@ARGV) > 4) {$agtf=$ARGV[4];}
+if (scalar(@ARGV) > 5) {$agtf=$ARGV[5];}
 my $Ext=10;
-if (scalar(@ARGV) > 5) {$Ext=$ARGV[5];}
+if (scalar(@ARGV) > 6) {$Ext=$ARGV[6];}
 print "Fuzzy exon border recognition, extention = $Ext\n";
 my $debug=-1;
-if (scalar(@ARGV) > 6) {$debug=$ARGV[6];}
+if (scalar(@ARGV) > 7) {$debug=$ARGV[7];}
 my $command="rm -f Step2_MuSeg_finished";
 system($command);
 
@@ -552,7 +554,7 @@ foreach my $chr (sort keys %CHRSEQ) {
         foreach my $end (sort keys %{$uniq{$chr}{$start}}) {
             foreach my $seqid (keys %{$uniq{$chr}{$start}{$end}}) {
                 my @a=split("\t",$uniq{$chr}{$start}{$end}{$seqid});
-				if ($a[7] eq "+") {
+				if ((($strandess eq "-") and ($a[7] eq "+")) or ($strandess eq "no") or (($strandess eq "+") and ($a[7] eq "-"))) {
 					# R+m-
 					my $overlap=$a[3]+$a[4]-$a[8];
 					my $left_seq=substr($SEQ,($start-2*$Extend-1),(4*$Extend + 1));
@@ -736,7 +738,7 @@ foreach my $chr (sort keys %CHRSEQ) {
                         print OUT2 join("\t",@a),"\n";
 					}
 				}
-				else {
+				if ((($strandess eq "-") and ($a[7] eq "-")) or ($strandess eq "no") or (($strandess eq "+") and ($a[7] eq "+"))) {
 					# R-m+
 					my $overlap=$a[8]+$a[9]-$a[3];
 					my $left_seq=substr($SEQ,($start-2*$Extend-1),(4*$Extend + 1));
