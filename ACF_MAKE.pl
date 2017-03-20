@@ -86,7 +86,7 @@ print OUT "#Step1\n";
 print OUT "echo \"Step1 maping_the_unmapped_reads_to_genome Started\" \n";
 $command=$SPEC{"BWA_folder"}."/bwa mem -t ".$thread." -k ".$bwa_seed_len." -T ".$bwa_min_score." ".$SPEC{"BWA_genome_Index"}." ".$SPEC{"UNMAP"}." \> temp.unmap.sam";
 print OUT $command,"\n";
-$command="perl ".$SPEC{"ACF_folder"}."/ACF_Step1.pl temp.unmap.parsed temp.unmap.sam  $MAS $coverage";
+$command="perl ".$SPEC{"ACF_folder"}."/ACF_Step1.pl temp.unmap.parsed temp.unmap.sam $stranded $MAS $coverage";
 print OUT $command,"\n";
 $command="rm -rf temp.unmap.parsed.UID.fa";
 print OUT $command,"\n";

@@ -1,21 +1,19 @@
 #!/usr/bin/perl -w
 use strict;
 # rescue circ spanning very short exons
-die "Usage: $0   \"multiple_segments\"   \"CB_splice_folder\"   \"genome_fasta\"    \"\(optional\) strandness=="-"\"  \"\(optional\) extend N bases\"   \"\(optional\)split_exon_gtf\"  \"\(optional\) fuzzy exon border recognition\"     \"\(DEBUG\)\"" if (@ARGV < 3);
+die "Usage: $0   \"multiple_segments\"   \"CB_splice_folder\"   \"genome_fasta\"    \"\(optional\) extend N bases\"   \"\(optional\)split_exon_gtf\"  \"\(optional\) fuzzy exon border recognition\"     \"\(DEBUG\)\"" if (@ARGV < 3);
 my $fileout=$ARGV[0];
 my $DIR=$ARGV[1];		# /home/arthur/CB_splice/
 my $genome=$ARGV[2];    # /data/iGenome/mouse/Ensembl/NCBIM37/Sequence/WholeGenomeFasta/genome.fa
-my $strandess="-";      # "-" assumes Truseq_stranded_RNASeq, "+" the otherway around, "no" assumes no stranded
-if (scalar(@ARGV) > 3) {$strandess=$ARGV[3];}
 my $Extend=15;           # 15nt by default. as 3' splice strength need 23nt, 20nt from intron and 3 from exon.
-if (scalar(@ARGV) > 4) {$Extend=$ARGV[4];}
+if (scalar(@ARGV) > 3) {$Extend=$ARGV[3];}
 my $agtf="no";
-if (scalar(@ARGV) > 5) {$agtf=$ARGV[5];}
+if (scalar(@ARGV) > 4) {$agtf=$ARGV[4];}
 my $Ext=10;
-if (scalar(@ARGV) > 6) {$Ext=$ARGV[6];}
+if (scalar(@ARGV) > 5) {$Ext=$ARGV[5];}
 print "Fuzzy exon border recognition, extention = $Ext\n";
 my $debug=-1;
-if (scalar(@ARGV) > 7) {$debug=$ARGV[7];}
+if (scalar(@ARGV) > 6) {$debug=$ARGV[6];}
 my $command="rm -f Step2_MuSeg_finished";
 system($command);
 
@@ -554,22 +552,22 @@ foreach my $chr (sort keys %CHRSEQ) {
         foreach my $end (sort keys %{$uniq{$chr}{$start}}) {
             foreach my $seqid (keys %{$uniq{$chr}{$start}{$end}}) {
                 my @a=split("\t",$uniq{$chr}{$start}{$end}{$seqid});
-				if ((($strandess eq "-") and ($a[7] eq "+")) or ($strandess eq "no") or (($strandess eq "+") and ($a[7] eq "-"))) {
+				if  ($a[7] eq "+") {  EXIT_IF:{
 					# R+m-
 					my $overlap=$a[3]+$a[4]-$a[8];
 					my $left_seq=substr($SEQ,($start-2*$Extend-1),(4*$Extend + 1));
-					if (length($left_seq) ne (4*$Extend + 1)) {print OUTerr join("\t",$chr,$start,"left_404"),"\n"; next;}
+					if (length($left_seq) ne (4*$Extend + 1)) {print OUTerr join("\t",$chr,$start,"left_404"),"\n"; last EXIT_IF;}
 					my $left_max=-99999;
 					my $left_pos=0;
 					my $left_flag=0;
 					my $right_seq=substr($SEQ,($end-2*$Extend-1),(4*$Extend + 1));
-					if ($overlap > $Extend) { print OUTerr join("\t",@a),"\tlarge_overlap\t",$left_seq,"\t",$right_seq,"\t",$overlap,"\n"; next; }
-					if (length($right_seq) ne (4*$Extend + 1)) {print OUTerr join("\t",$chr,$start,$end,$seqid,"right_404"),"\n";next;}
+					if ($overlap > $Extend) { print OUTerr join("\t",@a),"\tlarge_overlap\t",$left_seq,"\t",$right_seq,"\t",$overlap,"\n"; last EXIT_IF; }
+					if (length($right_seq) ne (4*$Extend + 1)) {print OUTerr join("\t",$chr,$start,$end,$seqid,"right_404"),"\n";last EXIT_IF;}
 					my $right_max=-99999;
 					my $right_pos=0;
 					my $right_flag=0;
-					if ((sanity($left_seq) > 0) or (sanity($right_seq) > 0)) { print OUTerr join("\t",@a),"\tsanity_fail\t",$left_seq,"\t",$right_seq,"\t",$overlap,"\n"; next;}
-					if ((length($left_seq) ne (4*$Extend+1)) or (length($right_seq) ne (4*$Extend+1))) { print OUTerr join("\t",@a),"\tlength_fail\t",$left_seq,"\t",$right_seq,"\t",$overlap,"\n"; next;}
+					if ((sanity($left_seq) > 0) or (sanity($right_seq) > 0)) { print OUTerr join("\t",@a),"\tsanity_fail\t",$left_seq,"\t",$right_seq,"\t",$overlap,"\n"; last EXIT_IF;}
+					if ((length($left_seq) ne (4*$Extend+1)) or (length($right_seq) ne (4*$Extend+1))) { print OUTerr join("\t",@a),"\tlength_fail\t",$left_seq,"\t",$right_seq,"\t",$overlap,"\n"; last EXIT_IF;}
 					my $SMS=0;	
 					my $PMS=0;
 					my $SMscoren=-99999;
@@ -631,7 +629,7 @@ foreach my $chr (sort keys %CHRSEQ) {
 							$a[10]=$a[10]+($overlap-$PMS);
 							$a[14]=$a[14]."\t".$sum."\t".sprintf("%.2f",$left_max)."\t".sprintf("%.2f",$right_max)."\t"."-"."\t".$overlap."\t".$PMS."\t".($overlap-$PMS)."\t".$SMS."\t".$PMS;
 							print OUT1 join("\t",@a),"\n";
-							next;
+							last EXIT_IF;
 						}
 					}
                     elsif (($overlap < 0) or ($a[13] > 0)) {
@@ -737,23 +735,23 @@ foreach my $chr (sort keys %CHRSEQ) {
                         $a[14]=$a[14]."\t".$SMscoren."\t".sprintf("%.2f",$left_max)."\t".sprintf("%.2f",$right_max)."\t".$strand."\t".$overlap."\t".$PMS."\t".($overlap-$PMS)."\t".$SMS."\t".$PMS;
                         print OUT2 join("\t",@a),"\n";
 					}
-				}
-				if ((($strandess eq "-") and ($a[7] eq "-")) or ($strandess eq "no") or (($strandess eq "+") and ($a[7] eq "+"))) {
+				}}
+				if ($a[7] eq "-") {  EXIT_IF:{
 					# R-m+
 					my $overlap=$a[8]+$a[9]-$a[3];
 					my $left_seq=substr($SEQ,($start-2*$Extend-1),(4*$Extend + 1));
-					if (length($left_seq) ne (4*$Extend + 1)) {print OUTerr join("\t",$chr,$start,"left_404"),"\n"; next;}
+					if (length($left_seq) ne (4*$Extend + 1)) {print OUTerr join("\t",$chr,$start,"left_404"),"\n"; last EXIT_IF;}
 					my $left_max=-99999;
 					my $left_pos=0;
 					my $left_flag=0;
 					my $right_seq=substr($SEQ,($end-2*$Extend-1),(4*$Extend + 1));
-					if ($overlap > $Extend) { print OUTerr join("\t",@a),"\tlarge_overlap\t",$left_seq,"\t",$right_seq,"\t",$overlap,"\n"; next; }
-					if (length($right_seq) ne (4*$Extend + 1)) {print OUTerr join("\t",$chr,$start,$end,$seqid,"right_404"),"\n";next;}
+					if ($overlap > $Extend) { print OUTerr join("\t",@a),"\tlarge_overlap\t",$left_seq,"\t",$right_seq,"\t",$overlap,"\n"; last EXIT_IF; }
+					if (length($right_seq) ne (4*$Extend + 1)) {print OUTerr join("\t",$chr,$start,$end,$seqid,"right_404"),"\n";last EXIT_IF;}
 					my $right_max=-99999;
 					my $right_pos=0;
 					my $right_flag=0;
-					if ((sanity($left_seq) > 0) or (sanity($right_seq) > 0)) { print OUTerr join("\t",@a),"\tsanity_fail\t",$left_seq,"\t",$right_seq,"\t",$overlap,"\n"; next;}
-					if ((length($left_seq) ne (4*$Extend+1)) or (length($right_seq) ne (4*$Extend+1))) { print OUTerr join("\t",@a),"\tlength_fail\t",$left_seq,"\t",$right_seq,"\t",$overlap,"\n"; next;}
+					if ((sanity($left_seq) > 0) or (sanity($right_seq) > 0)) { print OUTerr join("\t",@a),"\tsanity_fail\t",$left_seq,"\t",$right_seq,"\t",$overlap,"\n"; last EXIT_IF;}
+					if ((length($left_seq) ne (4*$Extend+1)) or (length($right_seq) ne (4*$Extend+1))) { print OUTerr join("\t",@a),"\tlength_fail\t",$left_seq,"\t",$right_seq,"\t",$overlap,"\n"; last EXIT_IF;}
 					my $SMS=0;	
 					my $PMS=0;
 					my $SMscoren=-99999;
@@ -803,7 +801,7 @@ foreach my $chr (sort keys %CHRSEQ) {
 							$a[10]=$a[10]+($overlap-$PMS);
 							$a[14]=$a[14]."\t".$sum."\t".sprintf("%.2f",$left_max)."\t".sprintf("%.2f",$right_max)."\t"."+"."\t".$overlap."\t".$PMS."\t".($overlap-$PMS)."\t".$SMS."\t".$PMS;
 							print OUT1 join("\t",@a),"\n";
-							next;
+							last EXIT_IF;
 						}
 					}
                     elsif (($overlap < 0) or ($a[13] > 0)) {
@@ -897,7 +895,7 @@ foreach my $chr (sort keys %CHRSEQ) {
                         $a[14]=$a[14]."\t".$SMscoren."\t".sprintf("%.2f",$left_max)."\t".sprintf("%.2f",$right_max)."\t".$strand."\t".$overlap."\t".$PMS."\t".($overlap-$PMS)."\t".$SMS."\t".$PMS;
                         print OUT2 join("\t",@a),"\n";
 					}
-				}
+				}}
 			}
 	    }
     }

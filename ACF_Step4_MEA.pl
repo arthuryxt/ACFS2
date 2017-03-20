@@ -96,14 +96,8 @@ while(<IN>) {
         if (($tmp_s <= $a[3]) and ($a[3] <= $tmp_e)) { $tmp_s=$a[3]; }
         elsif (($tmp_s <= $a[2]) and ($a[2] <= $tmp_e)) { $tmp_e=$a[2]; }
         if ($do_not_fix eq 1) {
-            if ($a[20] eq "+") {
-                if ($i eq 1) { $tmp_s=$a[3];}
-                elsif($i eq $Nr) { $tmp_e=$a[2]; }
-            }
-            else {
-                if ($i eq 1) { $tmp_e=$a[2]; }
-                elsif($i eq $Nr) { $tmp_s=$a[3];  }
-            }
+            if ($i eq 1) { $tmp_s=$a[3];}
+            elsif($i eq $Nr) { $tmp_e=$a[2]; }
         }
         if ($debug > 0) {print join("\t",$b[0],$b[1],$b[2],$tmp_s,$tmp_e,$b[5],$b[6],$b[7]),"\n";}
         print OUT join("\t",$b[0],$b[1],$b[2],$tmp_s,$tmp_e,$b[5],$b[6],$b[7],$info),"\n";

@@ -29,8 +29,9 @@ while(<IN>) {
         my $len=scalar(@b);
         my $gene_id=$b[0];
         my $transcript_id=$b[0];
-        my $gene_name=$a[7];
+        my $gene_name=$a[7];    # exon_number is ALWAYS counted from left to right
         my $exon_number=$b[1];
+        if ($a[6] eq "-") { $exon_number=$b[2]-$b[1]+1; }
         my $strand="+";
         if ($a[6] eq "-") {$strand="-";}
         #                                           chr  strand   start end                           biotype

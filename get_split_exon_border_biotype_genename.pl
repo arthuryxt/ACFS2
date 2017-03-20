@@ -78,7 +78,7 @@ foreach my $id (keys %uniq) {
         undef %tmp;
         $Nr=scalar(@Stmp)/2;
         for(my $i=0; $i<$Nr; $i++) {
-            if (($i>0) and (($Stmp[2*$i] - $Stmp[2*$i-1]) <= 1)) {
+            if (($i>0) and (($Stmp[2*$i] - $Stmp[2*$i-1]) < 1)) {
                 print "Warning1: Two exons overlaps. Gene = ".$id."   Transcript = ".$tid,"\n";
                 print join("\t",$Stmp[2*$i-2],$Stmp[2*$i-1],$Stmp[2*$i],$Stmp[2*$i+1]),"\n";
                 delete $pair{$Stmp[2*$i-2]}{$Stmp[2*$i-1]};

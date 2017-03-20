@@ -137,6 +137,16 @@ while (<IN>) {
             }
             if ($a[$i]=~m/MD/) { $MD=$a[$i]; }
         }
+        # Number of Mismatches has to also count unmapped part
+        my @CIGAR_op=($a[5]=~m/[MSHID]/g); 
+        my @CIGAR_va=($a[5]=~m/\d+/g);
+        my $Nr=scalar(@CIGAR_op);
+        my $unmappedlen=0;
+        for(my $i=0; $i<$Nr; $i++){
+            if ($CIGAR_op[$i] eq "S") {$unmappedlen+=$CIGAR_va[$i]; }
+            elsif ($CIGAR_op[$i] eq "H") {$unmappedlen+=$CIGAR_va[$i]; }
+        }
+        $NM+=$unmappedlen;
         my $errors=$errorrate;
         if ((0 < $errorrate) and ($errorrate < 1)) {  $errors=length($a[9])*$errorrate; }
         if ($NM > $errors) { next; }
@@ -192,6 +202,16 @@ while (<IN>) {
             }
             if ($a[$i]=~m/MD/) { $MD=$a[$i]; }
         }
+        # Number of Mismatches has to also count unmapped part
+        my @CIGAR_op=($a[5]=~m/[MSHID]/g); 
+        my @CIGAR_va=($a[5]=~m/\d+/g);
+        my $Nr=scalar(@CIGAR_op);
+        my $unmappedlen=0;
+        for(my $i=0; $i<$Nr; $i++){
+            if ($CIGAR_op[$i] eq "S") {$unmappedlen+=$CIGAR_va[$i]; }
+            elsif ($CIGAR_op[$i] eq "H") {$unmappedlen+=$CIGAR_va[$i]; }
+        }
+        $NM+=$unmappedlen;
         my $errors=$errorrate;
         if ((0 < $errorrate) and ($errorrate < 1)) {  $errors=length($a[9])*$errorrate; }
         if ($NM > $errors) { next; }
