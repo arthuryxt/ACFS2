@@ -3,10 +3,10 @@
 date
 #Step1
 echo "Step1 maping_the_unmapped_reads_to_genome Started" 
-/Users/arthur/Desktop/Dev/bwa0715//bwa mem -t 1 -k 16 -T 20 myGenome.fa UNMAP > temp.unmap.sam
-perl /Users/arthur/Desktop/Dev/acfs2//ACF_Step1.pl temp.unmap.parsed temp.unmap.sam  20 0.9
+/Users/arthur/Desktop/Dev/bwa0715//bwa mem -t 1 -k 16 -T 20 myGenome.fa simu_circ_SE_150.fa > temp.unmap.sam
+perl /Users/arthur/Desktop/Dev/acfs2//ACF_Step1.pl temp.unmap.parsed temp.unmap.sam no 20 0.9
 rm -rf temp.unmap.parsed.UID.fa
-ln -s UNMAP temp.unmap.parsed.UID.fa
+ln -s simu_circ_SE_150.fa temp.unmap.parsed.UID.fa
 echo "Step1 maping_the_unmapped_reads_to_genome Finished" 
 
 
@@ -41,8 +41,8 @@ echo "Step4 define_circle Finished"
 date
 echo "Step5 caliberate_the_expression_of_circles Started" 
 /Users/arthur/Desktop/Dev/bwa0715//bwa index temp_circ.CL
-/Users/arthur/Desktop/Dev/bwa0715//bwa mem -t 1 -k 16 -T 20 temp_circ.CL UNMAP > temp_circ.bwamap
-perl /Users/arthur/Desktop/Dev/acfs2//ACF_Step5_process_bt2aln.pl circRNA_candidates temp_circ.bwamap UNMAP_expr temp_circ_MEA temp_circ_CBR no 6 150 0.05
+/Users/arthur/Desktop/Dev/bwa0715//bwa mem -t 1 -k 16 -T 20 temp_circ.CL simu_circ_SE_150.fa > temp_circ.bwamap
+perl /Users/arthur/Desktop/Dev/acfs2//ACF_Step5_process_bt2aln.pl circRNA_candidates temp_circ.bwamap no temp_circ_MEA temp_circ_CBR no 6 150 0.05
 perl /Users/arthur/Desktop/Dev/acfs2//get_bed12_from_refFlat.pl circRNA_candidates.bed12 circRNA_candidates_refFlat circRNA_candidates_expr no no 
 date
 date

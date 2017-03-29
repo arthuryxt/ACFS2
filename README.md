@@ -114,9 +114,10 @@ Optional parameters, the values in below are set as default:
     Download the gtf file from iGenome package    or    download ensembl gtf here : ftp://ftp.ensembl.org/pub/current_gtf/
     Then run:
     ```
-    perl get_split_exon_border_biotype_genename.pl </data/iGenome/human/Ensembl/GRCh37/Annotation/Genes/genes.gtf> </data/iGenome/human/Ensembl/GRCh37/Annotation/Genes/Homo_sapiens.GRCh37.71_split_exon.gtf>
+    perl get_split_exon_border_biotype_genename.pl </data/iGenome/human/Ensembl/GRCh37/Annotation/Genes/genes.gtf> </data/iGenome/human/Ensembl/GRCh37/Annotation/Genes/Homo_sapiens.GRCh37.71_split_exon.gtf> ...
     ```
-    The first argument is the input gtf file, the second argument is the output
+    The first argument is the output agtf file, the second argument (and possibly other arguments) is the input gtf file(s).
+    Note, there are **differences** between this script in ACFS2 with the one in Acfs. Make sure you don't mix up the annotation files.
 
 5. Strandedness is assumed as from the Truseq Stranded RNA-Seq, so the reads are reverse-complementary to mRNAs.
     - If the reads are actually sense (the same 5'->3' direction as mRNA), please reverse-complement all reads.
