@@ -1,11 +1,12 @@
+bowtie2_folder	/Users/arthur/Desktop/Dev/bowtie2_228/
 BWA_folder	/Users/arthur/Desktop/Dev/bwa0715/
 BWA_genome_Index	myGenome.fa
 ACF_folder	/Users/arthur/Desktop/Dev/acfs2/
 Agtf	myGenes.agtf
-UNMAP	UNMAP
+UNMAP	simu_circ_PE_150.1.fa
+UNMAP2	simu_circ_PE_150.2.fa
 Seq_len	300
 make_AS	0
 minSplicingScore	0
 remove_temp	yes
 UNMAP_expr	no
-Strandness	no

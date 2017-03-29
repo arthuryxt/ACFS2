@@ -49,17 +49,19 @@ cat simu_circ_PE_150.1.fa simu_circ_PE_150.2.fa > UNMAP
 
 #_Step-2_# configure parameters according to your settings. An example is shown in below. Note two addition parameters : "UNMAP_expr" and "Strandness"
 rm -rf SPEC.txt
+perl -e 'print join("\t","bowtie2_folder","/Users/arthur/Desktop/Dev/bowtie2_228/"),"\n";' >> SPEC.txt
 perl -e 'print join("\t","BWA_folder","/Users/arthur/Desktop/Dev/bwa0715/"),"\n";' >> SPEC.txt
 perl -e 'print join("\t","BWA_genome_Index","myGenome.fa"),"\n";' >> SPEC.txt
 perl -e 'print join("\t","ACF_folder","/Users/arthur/Desktop/Dev/acfs2/"),"\n";' >> SPEC.txt
 perl -e 'print join("\t","Agtf","myGenes.agtf"),"\n";' >> SPEC.txt
-perl -e 'print join("\t","UNMAP","UNMAP"),"\n";' >> SPEC.txt
+perl -e 'print join("\t","UNMAP","simu_circ_PE_150.1.fa"),"\n";' >> SPEC.txt
+perl -e 'print join("\t","UNMAP2","simu_circ_PE_150.2.fa"),"\n";' >> SPEC.txt
 perl -e 'print join("\t","Seq_len","300"),"\n";' >> SPEC.txt
 perl -e 'print join("\t","make_AS","0"),"\n";' >> SPEC.txt
 perl -e 'print join("\t","minSplicingScore","0"),"\n";' >> SPEC.txt
 perl -e 'print join("\t","remove_temp","yes"),"\n";' >> SPEC.txt
 perl -e 'print join("\t","UNMAP_expr","no"),"\n";' >> SPEC.txt
-perl -e 'print join("\t","Strandness","no"),"\n";' >> SPEC.txt
+
 
 
 #_Step-3_# configure generate pipeline

@@ -12,6 +12,9 @@ while (<IN>) {
     $SPEC{$a[0]}=$a[1];
 }
 close IN;
+my $command="rm -rf $fileout";
+system($command);
+
 my $bwa_seed_len=16;
 my $bwa_min_score=20;
 my $thread=1;
@@ -35,12 +38,12 @@ my $ts_minSSSum=$minSSSum;
 my $ts_maxSpan=$maxJump;
 my $remove_temp="yes";
 my $make_AS="0";
+my $UNMAP2="no";
 # check if all parameters are set
-if (!exists $SPEC{"BWA_folder"}) { die "BWA_folder must by specified in the config_file $filein";}
-if (!exists $SPEC{"BWA_genome_Index"}) { die "BWA_genome_Index must by specified in the config_file $filein";}
+if (!exists $SPEC{"BWA_folder"}) { die "ERROR: BWA_folder must by specified in the config_file $filein";}
+if (!exists $SPEC{"BWA_genome_Index"}) { die "ERROR: BWA_genome_Index must by specified in the config_file $filein";}
 if (!exists $SPEC{"genome_fasta"}) { $SPEC{"genome_fasta"}=$SPEC{"BWA_genome_Index"}}
-if (!exists $SPEC{"ACF_folder"}) { die "ACF_folder must by specified in the config_file $filein";}
-#if (!exists $SPEC{"CBR_folder"}) { die "CBR_folder must by specified in the config_file $filein";}
+if (!exists $SPEC{"ACF_folder"}) { die "ERROR: ACF_folder must by specified in the config_file $filein";}
 $SPEC{"CBR_folder"}=$SPEC{"ACF_folder"}."/CB_splice/";
 if (!exists $SPEC{"Agtf"}) { $SPEC{"Agtf"}="no"; print "No gene annotation file is provided. Providing annotation would enhance the performance.\n";}
 if (!exists $SPEC{"UNMAP"}) { die "UNMAP must by specified in the config_file $filein";}
@@ -48,7 +51,7 @@ if (!exists $SPEC{"UNMAP"}) { die "UNMAP must by specified in the config_file $f
 my $UNMAP_expr_filename=$SPEC{"UNMAP"}."_expr";
 $SPEC{"UNMAP_expr"}="no";
 if (-e $UNMAP_expr_filename) { $SPEC{"UNMAP_expr"}=$UNMAP_expr_filename; }
-if (!exists $SPEC{"Seq_len"}) { die "length of SE reads or insert_size(mean+SD) of PE reads must by specified in the config_file $filein";}
+if (!exists $SPEC{"Seq_len"}) { die "ERROR: length of SE reads or insert_size(mean+SD) of PE reads must by specified in the config_file $filein";}
 if (exists $SPEC{"bowtie2_folder"}) { print "Bowtie2 will be used, insteand of BWA, for abundance quantification.\n";}
 if (exists $SPEC{"remove_temp"}) { $remove_temp=$SPEC{"remove_temp"}; }
 if (exists $SPEC{"make_AS"}) { $make_AS=$SPEC{"make_AS"}; }
@@ -77,20 +80,41 @@ if (exists $SPEC{"trans_splicing_minMappingQuality"}) { $ts_MAS=$SPEC{"trans_spl
 if (exists $SPEC{"trans_splicing_minSplicingScore"}) { $ts_minSSSum=$SPEC{"trans_splicing_minSplicingScore"}; }
 if (exists $SPEC{"trans_splicing_maxSpan"}) { $ts_maxSpan=$SPEC{"trans_splicing_maxSpan"}; }
 
+if (exists $SPEC{"UNMAP2"}) {
+    if ((exists $SPEC{"bowtie2_folder"}) and ($SPEC{"UNMAP_expr"} eq "no")) {
+        $UNMAP2=$SPEC{"UNMAP2"};
+        $stranded="no";
+        print "PE information will be used for abundance quantification. No strandess information is used.\n";
+    }
+    elsif (!exists $SPEC{"bowtie2_folder"})  {
+        die "ERROR: Bowtie2 is needed for quantification using PE reads. Please provide the path to bowtie2.\n";
+    }
+    elsif ($SPEC{"UNMAP_expr"} ne "no") {
+        die "ERROR: No UNMAP_expr is needed when processing PE reads. Please change UNMAP_expr to \"no\"\n";
+    }
+}
+my $singlefile="";
+my $UNMAP=$SPEC{"UNMAP"};
 
-my $command="";
-open(OUT, ">".$fileout) or die "Cannot open output_sh file $fileout";
+open(OUT, ">".$fileout) or die "ERROR: Cannot open output_sh file $fileout";
 print OUT "#!/bin/bash\n\n";
 print OUT "date\n";
 print OUT "#Step1\n";
 print OUT "echo \"Step1 maping_the_unmapped_reads_to_genome Started\" \n";
-$command=$SPEC{"BWA_folder"}."/bwa mem -t ".$thread." -k ".$bwa_seed_len." -T ".$bwa_min_score." ".$SPEC{"BWA_genome_Index"}." ".$SPEC{"UNMAP"}." \> temp.unmap.sam";
+if (($SPEC{"UNMAP_expr"} eq "no") and (exists $SPEC{"UNMAP2"})) {
+    $singlefile="temp.merged.R1.R2";
+    $command="cat ".$SPEC{"UNMAP"}." ".$SPEC{"UNMAP2"}." > ".$singlefile;
+    print OUT $command,"\n";
+    $UNMAP=$singlefile;
+}
+
+$command=$SPEC{"BWA_folder"}."/bwa mem -t ".$thread." -k ".$bwa_seed_len." -T ".$bwa_min_score." ".$SPEC{"BWA_genome_Index"}." ".$UNMAP." \> temp.unmap.sam";
 print OUT $command,"\n";
 $command="perl ".$SPEC{"ACF_folder"}."/ACF_Step1.pl temp.unmap.parsed temp.unmap.sam $stranded $MAS $coverage";
 print OUT $command,"\n";
 $command="rm -rf temp.unmap.parsed.UID.fa";
 print OUT $command,"\n";
-$command="ln -s ".$SPEC{"UNMAP"}." temp.unmap.parsed.UID.fa";
+$command="ln -s ".$UNMAP." temp.unmap.parsed.UID.fa";
 print OUT $command,"\n";
 print OUT "echo \"Step1 maping_the_unmapped_reads_to_genome Finished\" \n\n\n";
 
@@ -146,22 +170,43 @@ print OUT "echo \"Step4 define_circle Finished\" \n\n\n";
 print OUT "#Step5\n";
 print OUT "date\n";
 print OUT "echo \"Step5 caliberate_the_expression_of_circles Started\" \n";
-if (exists $SPEC{"bowtie2_folder"}) {
-    $command=$SPEC{"bowtie2_folder"}."/bowtie2-build -q -o 1 temp_circ.CL temp_circ.CL.bt2index";
-    print OUT $command,"\n";
-    $command=$SPEC{"bowtie2_folder"}."/bowtie2 -p ".$thread." -f -a -x temp_circ.CL.bt2index -U ".$SPEC{"UNMAP"}." > temp_circ.bt2map";
-    print OUT $command,"\n";
-    $command="perl ".$SPEC{"ACF_folder"}."/ACF_Step5_process_bt2aln.pl circRNA_candidates temp_circ.bt2map ".$SPEC{"UNMAP_expr"}." temp_circ_MEA temp_circ_CBR $stranded $Junc ".$SPEC{"Seq_len"}." $ER";
-    print OUT $command,"\n";
+if ($singlefile eq "") {
+    if (exists $SPEC{"bowtie2_folder"}) {
+        $command=$SPEC{"bowtie2_folder"}."/bowtie2-build -q -o 1 temp_circ.CL temp_circ.CL.bt2index";
+        print OUT $command,"\n";
+        $command=$SPEC{"bowtie2_folder"}."/bowtie2 -p ".$thread." -f -a -x temp_circ.CL.bt2index -U ".$UNMAP." > temp_circ.bt2map";
+        print OUT $command,"\n";
+        $command="perl ".$SPEC{"ACF_folder"}."/ACF_Step5_process_bt2aln.pl circRNA_candidates temp_circ.bt2map ".$SPEC{"UNMAP_expr"}." temp_circ_MEA temp_circ_CBR $stranded $Junc ".$SPEC{"Seq_len"}." $ER";
+        print OUT $command,"\n";
+    }
+    else{
+        $command=$SPEC{"BWA_folder"}."/bwa index temp_circ.CL";
+        print OUT $command,"\n";
+        $command=$SPEC{"BWA_folder"}."/bwa mem -t ".$thread." -k ".$bwa_seed_len." -T ".$bwa_min_score." temp_circ.CL ".$UNMAP." > temp_circ.bwamap";
+        print OUT $command,"\n";
+        $command="perl ".$SPEC{"ACF_folder"}."/ACF_Step5_process_bt2aln.pl circRNA_candidates temp_circ.bwamap ".$SPEC{"UNMAP_expr"}." temp_circ_MEA temp_circ_CBR $stranded $Junc ".$SPEC{"Seq_len"}." $ER";
+        print OUT $command,"\n";
+    }
+} else {
+    if (exists $SPEC{"bowtie2_folder"}) {
+        $command=$SPEC{"bowtie2_folder"}."/bowtie2-build -q -o 1 temp_circ.CL temp_circ.CL.bt2index";
+        print OUT $command,"\n";
+        $command=$SPEC{"bowtie2_folder"}."/bowtie2 -p ".$thread." -f -a -x temp_circ.CL.bt2index -1 ".$SPEC{"UNMAP"}." -2 ".$SPEC{"UNMAP2"}." > temp_circ.bt2map2";
+        print OUT $command,"\n";
+        $command="perl ".$SPEC{"ACF_folder"}."/ACF_Step5_process_bt2aln.pl circRNA_candidates temp_circ.bt2map2 ".$SPEC{"UNMAP_expr"}." temp_circ_MEA temp_circ_CBR $stranded $Junc ".$SPEC{"Seq_len"}." $ER";
+        print OUT $command,"\n";
+    }
+    else{
+        $command=$SPEC{"BWA_folder"}."/bwa index temp_circ.CL";
+        print OUT $command,"\n";
+        $command=$SPEC{"BWA_folder"}."/bwa mem -t ".$thread." -k ".$bwa_seed_len." -T ".$bwa_min_score." temp_circ.CL ".$SPEC{"UNMAP"}." ".$SPEC{"UNMAP2"}." > temp_circ.bwamap2";
+        print OUT $command,"\n";
+        $command="perl ".$SPEC{"ACF_folder"}."/ACF_Step5_process_bt2aln.pl circRNA_candidates temp_circ.bwamap2 ".$SPEC{"UNMAP_expr"}." temp_circ_MEA temp_circ_CBR $stranded $Junc ".$SPEC{"Seq_len"}." $ER";
+        print OUT $command,"\n";
+    }
 }
-else{
-    $command=$SPEC{"BWA_folder"}."/bwa index temp_circ.CL";
-    print OUT $command,"\n";
-    $command=$SPEC{"BWA_folder"}."/bwa mem -t ".$thread." -k ".$bwa_seed_len." -T ".$bwa_min_score." temp_circ.CL ".$SPEC{"UNMAP"}." > temp_circ.bwamap";
-    print OUT $command,"\n";
-    $command="perl ".$SPEC{"ACF_folder"}."/ACF_Step5_process_bt2aln.pl circRNA_candidates temp_circ.bwamap ".$SPEC{"UNMAP_expr"}." temp_circ_MEA temp_circ_CBR $stranded $Junc ".$SPEC{"Seq_len"}." $ER";
-    print OUT $command,"\n";
-}
+
+
 $command="perl ".$SPEC{"ACF_folder"}."/get_bed12_from_refFlat.pl circRNA_candidates.bed12 circRNA_candidates_refFlat circRNA_candidates_expr no no ";
 print OUT $command,"\n";
 
