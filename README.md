@@ -42,7 +42,7 @@ Mandatory paramters:
 
 | Parameter | value | Note | 
 | --------- | ----- | ---- | 
-| BWA_folder | /home/bin/bwa037a/ | path of the folder of bwa |
+| BWA_folder | /home/bin/bwa/ | path of the folder of bwa |
 | BWA_genome_Index | /data/.../BWAIndex/genome.fa | full path to the index files | 
 | BWA_genome_folder | /data/.../genome.fa | can be ignored if is the same as BWA_genome_Index | 
 | ACF_folder | /home/bin/ACFS2/ | path of the folder of ACFS2 | 
@@ -105,9 +105,9 @@ Optional parameters, the values in below are set as default:
     
     However, one **can** bypass the previous and this step to run ACFS **sample by sample**. This way, no fasta header reformatting and reads collapsing is needed. For each sample, set the value of ```UNMAP``` to the name of fasta/fastq in the SPEC_example.txt file, and set the value of ```UNMAP_expr``` to "no".
     
-3. Build BWA index, using verion 0.73a (currently not support for other versions as the output format changes between versions)
+3. Build BWA index, using verion 0.7.15 (support downward at least to 0.73a)
     ```
-    /bin/bwa073a/bwa index /data/iGenome/human/Ensembl/GRCh37/Sequence/BWAIndex/genome.fa
+    /bin/bwa/bwa index /data/iGenome/human/Ensembl/GRCh37/Sequence/BWAIndex/genome.fa
     ```
     
 4. Prepare for annotation (recommended)
