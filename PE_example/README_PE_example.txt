@@ -41,13 +41,12 @@ As we treated PE reads as two individual SE reasd, the final read count could be
 
 
 
-############## alternatively, since we have only one sample, doing read-collapsing would probably not speed up the whole process. We can therefore start with the raw reads.
+############## alternatively, since we have only one sample, doing read-collapsing would probably not speed up the whole process. We can therefore start with the raw PE reads.
 
-#_Step-1_# pre-processing, simply merge the R1 and R2 file into one
-cat simu_circ_PE_150.1.fa simu_circ_PE_150.2.fa > UNMAP
+#_Step-1_# pre-processing. Nothing to be done
 
 
-#_Step-2_# configure parameters according to your settings. An example is shown in below. Note two addition parameters : "UNMAP_expr" and "Strandness"
+#_Step-2_# configure parameters according to your settings. An example is shown in below. Note the parameters : "bowtie2_folder", "UNMAP" and "UNMAP2"
 rm -rf SPEC.txt
 perl -e 'print join("\t","bowtie2_folder","/Users/arthur/Desktop/Dev/bowtie2_228/"),"\n";' >> SPEC.txt
 perl -e 'print join("\t","BWA_folder","/Users/arthur/Desktop/Dev/bwa0715/"),"\n";' >> SPEC.txt
@@ -61,7 +60,6 @@ perl -e 'print join("\t","make_AS","0"),"\n";' >> SPEC.txt
 perl -e 'print join("\t","minSplicingScore","0"),"\n";' >> SPEC.txt
 perl -e 'print join("\t","remove_temp","yes"),"\n";' >> SPEC.txt
 perl -e 'print join("\t","UNMAP_expr","no"),"\n";' >> SPEC.txt
-
 
 
 #_Step-3_# configure generate pipeline
