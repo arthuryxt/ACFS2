@@ -56,7 +56,7 @@ if (exists $SPEC{"bowtie2_folder"}) { print "Bowtie2 will be used, insteand of B
 if (exists $SPEC{"remove_temp"}) { $remove_temp=$SPEC{"remove_temp"}; }
 if (exists $SPEC{"make_AS"}) { $make_AS=$SPEC{"make_AS"}; }
 if ($make_AS eq 1 ) { print "All potential Alternative splicing events will be enumerated. This can be very slow.\n"; }
-if (($make_AS ne 0) and ($make_AS eq 1)) { die "make_AS can be either 1 or 0\n"; }
+if (($make_AS ne 0) and ($make_AS ne 1)) { die "make_AS can be either 1 or 0\n"; }
 if (exists $SPEC{"Thread"}) { $thread=$SPEC{"Thread"}; }
 if (exists $SPEC{"minJump"}) { $minJump=$SPEC{"minJump"}; }
 if (exists $SPEC{"maxJump"}) { $maxJump=$SPEC{"maxJump"}; }
