@@ -57,14 +57,12 @@ while(<IN>) {
         print OUTUID $a[0],"\n";
         next;
     }
-    if (exists $uniq{$a[0]}) {
-        next;
-    }
+    my $strand="+";
+    if ($aFlag[-5] eq 1) {$strand="-";}
+    if ($aFlag[-8] eq 1) {$strand=reverseStrand($strand); $a[0]="R2_".$a[0];}
+    if (exists $uniq{$a[0]}) { next; }
     else {
         $uniq{$a[0]}=1;
-        my $strand="+";
-        if ($aFlag[-5] eq 1) {$strand="-";}
-        if ($aFlag[-7] eq 1) {$strand=reverseStrand($strand); }
         if (($stranded eq "-") or ($stranded eq "no")) {
             my @d=split(/\:/,$a[11]);
             my $info="";

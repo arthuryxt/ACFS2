@@ -82,7 +82,7 @@ Optional parameters, the values in below are set as default:
 
 
 
-# Before running ACFS2, a few pre-process (Same as ACFS)
+# Before running ACFS2, a few pre-process
 0. Map the RNA-Seq reads to genome and transcriptom, and extract the unmapped reads. This is **_recommended_** as those mapped reads will NOT span the back-splice sites, and therefore do NOT contribute to circRNA discovery. 
 
 1. Change fasta/fastq header format to allow processing multiple samples in one run.
@@ -105,12 +105,12 @@ Optional parameters, the values in below are set as default:
     
     However, one **can** bypass the previous and this step to run ACFS **sample by sample**. This way, no fasta header reformatting and reads collapsing is needed. For each sample, set the value of ```UNMAP``` to the name of fasta/fastq in the SPEC_example.txt file, and set the value of ```UNMAP_expr``` to "no".
     
-3. Build BWA index, using verion 0.7.15 (support downward at least to 0.73a)
+3. Build BWA index, using verion 0.7.15 included in the package (also support downward at least to 0.7.3a)
     ```
     /bin/bwa/bwa index /data/iGenome/human/Ensembl/GRCh37/Sequence/BWAIndex/genome.fa
     ```
     
-4. Prepare for annotation (recommended)
+4. Prepare for annotation (recommended especially for long reads)
     Download the gtf file from iGenome package    or    download ensembl gtf here : ftp://ftp.ensembl.org/pub/current_gtf/
     Then run:
     ```
@@ -128,6 +128,7 @@ Optional parameters, the values in below are set as default:
     ```
     perl convert_unmapped_SAM_to_fa_for_acfs.pl <output_file_name> <unmapped.sam> sample_id
     ```
+    However, one **can** bypass the previous and this step to run ACFS **sample by sample**. See **PE_example** for detail
 
 
 
