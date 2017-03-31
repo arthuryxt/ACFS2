@@ -72,7 +72,19 @@ while(<IN>) {
                 if ($a[$i]=~m/^XP:Z:/) {
                     my @b=split(/:/,$a[$i]);
                     my @c=split(/\;/,$b[2]);
-                    $info=join("\t",join("\,",$a[2],$strand.$a[3],$a[5],$a[4],$d[2]),@c);
+                    if ($aFlag[-8] eq 0) {
+                        $info=join("\t",join("\,",$a[2],$strand.$a[3],$a[5],$a[4],$d[2]),@c);
+                    }
+                    else {
+                        for (my $j=0; $j<scalar(@c); $j++) {
+                            my @tmpp=split(/\,/,$c[$j]);
+                            my $tmpstrand=substr($tmpp[1],0,1);
+                            my $tmppos=substr($tmpp[1],1);
+                            $tmpp[1]=reverseStrand($tmpstrand).$tmppos;
+                            $c[$j]=join(",",@tmpp);
+                        }
+                        $info=join("\t",join("\,",$a[2],$strand.$a[3],$a[5],$a[4],$d[2]),@c);
+                    }
                     last;
                 }
                 elsif ($a[$i]=~m/^SA\:Z\:/) {
@@ -81,7 +93,8 @@ while(<IN>) {
                     for(my $j=0; $j<scalar(@c); $j++) {
                         if (length($c[$j]) > 1) {
                             my @tmp=split(/\,/,$c[$j]);
-                            $c[$j]=join(",",$tmp[0],$tmp[2].$tmp[1],$tmp[3],$tmp[4],$tmp[5]);
+                            if ($aFlag[-8] eq 0) { $c[$j]=join(",",$tmp[0],$tmp[2].$tmp[1],$tmp[3],$tmp[4],$tmp[5]); }
+                            else { $c[$j]=join(",",$tmp[0],reverseStrand($tmp[2]).$tmp[1],$tmp[3],$tmp[4],$tmp[5]); }
                         }
                     }
                     $info=join("\t",join("\,",$a[2],$strand.$a[3],$a[5],$a[4],$d[2]),@c);
@@ -343,7 +356,19 @@ while(<IN>) {
                 if ($a[$i]=~m/^XP:Z:/) {
                     my @b=split(/:/,$a[$i]);
                     my @c=split(/\;/,$b[2]);
-                    $info=join("\t",join("\,",$a[2],$strand.$a[3],$a[5],$a[4],$d[2]),@c);
+                    if ($aFlag[-8] eq 1) {
+                        $info=join("\t",join("\,",$a[2],$strand.$a[3],$a[5],$a[4],$d[2]),@c);
+                    }
+                    else {
+                        for (my $j=0; $j<scalar(@c); $j++) {
+                            my @tmpp=split(/\,/,$c[$j]);
+                            my $tmpstrand=substr($tmpp[1],0,1);
+                            my $tmppos=substr($tmpp[1],1);
+                            $tmpp[1]=reverseStrand($tmpstrand).$tmppos;
+                            $c[$j]=join(",",@tmpp);
+                        }
+                        $info=join("\t",join("\,",$a[2],$strand.$a[3],$a[5],$a[4],$d[2]),@c);
+                    }
                     last;
                 }
                 elsif ($a[$i]=~m/^SA\:Z\:/) {
@@ -352,7 +377,8 @@ while(<IN>) {
                     for(my $j=0; $j<scalar(@c); $j++) {
                         if (length($c[$j]) > 1) {
                             my @tmp=split(/\,/,$c[$j]);
-                            $c[$j]=join(",",$tmp[0],reverseStrand($tmp[2]).$tmp[1],$tmp[3],$tmp[4],$tmp[5]);
+                            if ($aFlag[-8] eq 1) { $c[$j]=join(",",$tmp[0],$tmp[2].$tmp[1],$tmp[3],$tmp[4],$tmp[5]); }
+                            else { $c[$j]=join(",",$tmp[0],reverseStrand($tmp[2]).$tmp[1],$tmp[3],$tmp[4],$tmp[5]); }
                         }
                     }
                     $info=join("\t",join("\,",$a[2],$strand.$a[3],$a[5],$a[4],$d[2]),@c);
