@@ -1,5 +1,6 @@
 #!/usr/bin/perl -w
 use strict;
+use Math::BigInt;
 # convert circRNA structure file into raw_gtf format 
 die "Usage: $0  \"output_basename\"   \"circRNA\"  \"split_exon_gtf\"   \"\(optional\) make combination default=0_or_1\"   \"\(optional\) insert_size default=150\"    \"\(optional\) extend N bases\"  \"\(optional\)do_NOT_fix_border_using_annotation==1_or_0\"    \"\(optional\)debug\"  " if (@ARGV < 3);
 my $fileout=$ARGV[0];
@@ -46,6 +47,103 @@ sub dec2bin {
 }
 sub bin2dec {
     return unpack("N", pack("B32", substr("0" x 32 . shift, -32)));
+}
+
+sub bigbin2dec {
+  my $bin = shift;
+  return Math::BigInt->new("0b$bin");
+}
+
+sub bigdec2bin {
+  my $dec = shift;
+  my $cnt = shift;
+  my $mybin = Math::BigInt->new($dec);
+  my $mybin2 = substr($mybin->as_bin(), 2);
+  my $mybin3 = "";
+  if (length($mybin2) >= $cnt) {
+    $mybin3=substr($mybin2,0-$cnt);
+  }
+  else {
+    my $heading=0;
+    for(my $i=1; $i<($cnt-length($mybin2)); $i++) {$heading=$heading."0";}
+    $mybin3=$heading.$mybin2;
+  }
+  return $mybin3;
+}
+
+sub joinexon($$$$) {
+    my $Gene=$_[0];
+    my $mleft=$_[1];
+    my $mright=$_[2];
+    my @exoncnt=split("",join("","1",$_[3],"1"));
+    if ($debug > 0) {print join("\t",$Gene,$mleft,$mright,$_[3]),"\n";}
+    my $result="";
+    my $lastl="";
+    my $lastr="";
+    my @exonlen;
+    for(my $i=$mleft; $i<=$mright; $i++) { $exonlen[$i-$mleft]=0; }
+    for(my $i=$mleft; $i<=$mright; $i++) {
+        if ($exoncnt[$i-$mleft] eq 0) { $result=$result."0"; next; }
+        my @a=split("\t",$anno{$Gene}{$i});
+        $exonlen[$i-$mleft]=$a[4]-$a[3]+1;
+        my @b=split(/\_\_\_/,$a[8]);
+        my $lb=substr($b[3],0,1);
+        my $rb=substr($b[3],1,1);
+        if ($result eq "") { # the first exon is guaranteed to be included
+            $result=1; $lastl=1; $lastr=$rb;
+        }
+        else {
+            if (($lastl eq 1) and ($lastr eq 0)) {
+                $result=$result."1"; $lastr=$rb; 
+            }
+            elsif (($lastl eq 1) and ($lastr eq 1)) {
+                if ($lb eq 0) {
+                    $result=$result."1"; $lastr=$rb; 
+                }
+                elsif ($lb eq 1)  {
+                    $result=$result."1"; $lastl=$lb; $lastr=$rb;
+                }
+                else  {
+                    $result=$result."0"; 
+                }
+            }
+            elsif (($lastl eq 1) and ($lastr eq 2)) {
+                if ($lb eq 0) {
+                    $result=$result."1"; $lastr=$rb; 
+                }
+                elsif ($lb eq 1)  {
+                    $result=$result."2"; $lastl=$lb; $lastr=$rb;    # wrong splicing pattern, need to be discarded
+                }
+                else  {
+                    $result=$result."2"; $lastr=$rb;    # wrong splicing pattern, need to be discarded
+                }
+            }
+            else { $result=$result."3"; }
+        }
+    }
+    if ($debug > 0) { print "raw result \t= ",$result,"\n"; }
+    if (($result=~m/2/) or ($result=~m/3/)) {
+        $result=-1;
+    }
+    else {
+        my @toUse=split("",$result);
+        my @FLeft;
+        for(my $i=$mleft; $i<=$mright; $i++) { $FLeft[$i-$mleft]=0; }
+        my $length=0;
+        for(my $i=$mleft; $i<=$mright; $i++) { if(($length < $libInsertSize) and ($toUse[$i-$mleft] eq 1)){ $FLeft[$i-$mleft]=1; $length+=$exonlen[$i-$mleft]; } }
+        my @FRight;
+        for(my $i=$mleft; $i<=$mright; $i++) { $FRight[$i-$mleft]=0; }
+        $length=0;
+        for(my $i=$mright; $i>=$mleft; $i--) { if(($length < $libInsertSize) and ($toUse[$i-$mleft] eq 1)){ $FRight[$i-$mleft]=1; $length+=$exonlen[$i-$mleft]; } }
+        if ($debug > 0) { print "lef result \t= ",join("",@FLeft),"\n"; }
+        if ($debug > 0) { print "rig result \t= ",join("",@FRight),"\n"; }
+        for(my $i=$mleft; $i<=$mright; $i++) {
+            if (($FLeft[$i-$mleft] eq 0) and ($FRight[$i-$mleft] eq 0)) { $toUse[$i-$mleft]=0; }
+        }
+        $result=join("",@toUse);
+    }
+    if ($debug > 0) { print "final result \t= ",$result,"\n"; }
+    return(substr($result,1,(length($result)-2)));
 }
 
 open IN,$filein;
@@ -121,27 +219,16 @@ while(<IN>) {
     }
     print OUTrefFlat join("\t",$a[6],$cid,$a[1],$strand,$a[3],$a[2]+1,$a[3],$a[3],$Nr,join(",",@ExonL),join(",",@ExonR),$a[17],$a[18],$a[19],$a[21],$a[22],$a[23]),"\n";
     if (($make_combi > 0) and ($Nr > 2)) {
-        # generate all possible alternative splicing events that can be determined given $libInsertSize
-        my @Reachable;
-        for(my $i=0; $i<$Nr; $i++){ $Reachable[$i]=0; if ($debug > 0) {print $i,"\t",$ExonLen[$i],"\n";} }
-        if ($debug > 0) { my $stdout=$Reachable[0]; for(my $i=1; $i<$Nr; $i++){ $stdout=$stdout.$Reachable[$i]; }  print $stdout,"\n";}
-        my $posLeft=0;
-        my $reached=0;
-        for(my $i=0; $i<$Nr; $i++) { $reached=$reached+$ExonLen[$i]; if($reached > $libInsertSize){ $posLeft=$i; last; } }
-        for(my $i=0; $i<=$posLeft; $i++) { $Reachable[$i]=1; }
-        if ($debug > 0) { my $stdout=$Reachable[0]; for(my $i=1; $i<$Nr; $i++){ $stdout=$stdout.$Reachable[$i]; }  print $stdout,"\n";}
-        my $posRight=0;
-        $reached=0;
-        for(my $i=0; $i<$Nr; $i++) { $reached=$reached+$ExonLen[$Nr-1-$i]; if($reached > $libInsertSize){ $posRight=$Nr-1-$i; last; } }
-        for(my $i=$Nr-1; $i>=$posRight; $i--) { $Reachable[$i]=1; }
-        if ($debug > 0) { my $stdout=$Reachable[0]; for(my $i=1; $i<$Nr; $i++){ $stdout=$stdout.$Reachable[$i]; }  print $stdout,"\n";}
-        my $apase=1;
-        for(my $k=0; $k<($Nr-3); $k++){ $apase=10*$apase + 1; }
-        my $patterns=bin2dec($apase);
+        my $apase="1";
+        for(my $k=0; $k<($Nr-3); $k++){ $apase=$apase."1"; }
+        my $patterns=bigbin2dec($apase);
         for(my $k=0; $k<$patterns; $k++) {
-            my @usage=split("",dec2bin($k,$Nr-2));
+            my $bigbin=bigdec2bin($k,$Nr-2);
+            if ($debug > 0) { print join("\t",$gene_name2,$start,$end,$bigbin),"\n"; }
+            my $myreachable=joinexon($gene_name2,$start,$end,$bigbin);
+            my @usage=split("",$myreachable);
             my $cid=$a[0]."_".$start;
-            for(my $j=0; $j<scalar(@usage); $j++) { if(($usage[$j] eq 1) and ($Reachable[1+$j] eq 1)){ $cid=$cid."|".($start+1+$j); }   }
+            for(my $j=0; $j<scalar(@usage); $j++) { if($usage[$j] eq 1) { $cid=$cid."|".($start+1+$j); }   }
             $cid=$cid."|".$end;
             if (exists $usedcid{$cid}) { next;} else { $usedcid{$cid}=1; }
             if ($debug > 0) { print $cid,"\t",join("",@usage),"\n"; }
@@ -152,7 +239,7 @@ while(<IN>) {
             print OUT1gtf join("\t",$a[1],"split","exon",$ExonL[0],$ExonR[0],$biotype,$a[20],$gene_name2,$info),"\n";
             my $exoncnt=1;
             for(my $j=0; $j<scalar(@usage); $j++) {
-                if(($usage[$j] eq 1) and ($Reachable[1+$j] eq 1)){
+                if($usage[$j] eq 1){
                     if ($strand eq "+") { $exonL=$exonL.",".($ExonL[1+$j]-1); $exonR=$exonR.",".$ExonR[1+$j]; }
                     else { $exonL=($ExonL[1+$j]-1).",".$exonL; $exonR=$ExonR[1+$j].",".$exonR; } 
                     $exoncnt++;
@@ -229,28 +316,18 @@ while(<IN>) {
 
             # generate all possible alternative splicing events that can be determined given $libInsertSize
             if (($make_combi > 0) and ($Nr > 2)) {
-                my @Reachable;
-                for(my $i=0; $i<$Nr; $i++){ $Reachable[$i]=0; if ($debug > 0) {print $i,"\t",$ExonLen[$i],"\n";} }
-                if ($debug > 0) { my $stdout=$Reachable[0]; for(my $i=1; $i<$Nr; $i++){ $stdout=$stdout.$Reachable[$i]; }  print $stdout,"\n";}
-                my $posLeft=0;
-                my $reached=0;
-                for(my $i=0; $i<$Nr; $i++) { $reached=$reached+$ExonLen[$i]; if($reached > $libInsertSize){ $posLeft=$i; last; } }
-                for(my $i=0; $i<=$posLeft; $i++) { $Reachable[$i]=1; }
-                if ($debug > 0) { my $stdout=$Reachable[0]; for(my $i=1; $i<$Nr; $i++){ $stdout=$stdout.$Reachable[$i]; }  print $stdout,"\n";}
-                my $posRight=0;
-                $reached=0;
-                for(my $i=0; $i<$Nr; $i++) { $reached=$reached+$ExonLen[$Nr-1-$i]; if($reached > $libInsertSize){ $posRight=$Nr-1-$i; last; } }
-                for(my $i=$Nr-1; $i>=$posRight; $i--) { $Reachable[$i]=1; }
-                if ($debug > 0) { my $stdout=$Reachable[0]; for(my $i=1; $i<$Nr; $i++){ $stdout=$stdout.$Reachable[$i]; }  print $stdout,"\n";}
             
-                my $apase=1;
-                for(my $k=0; $k<($Nr-3); $k++){ $apase=10*$apase + 1; }
-                my $patterns=bin2dec($apase);
+                my $apase="1";
+                for(my $k=0; $k<($Nr-3); $k++){ $apase=$apase."1"; }
+                my $patterns=bigbin2dec($apase);
                 for(my $k=0; $k<$patterns; $k++) {
-                    my @usage=split("",dec2bin($k,$Nr-2));
+                    my $bigbin=bigdec2bin($k,$Nr-2);
+                    if ($debug > 0) { print join("\t",$gene_name2,$start,$end,$bigbin),"\n"; }
+                    my $myreachable=joinexon($gene_name2,$start,$end,$bigbin);
+                    my @usage=split("",$myreachable);
                     my $cid=$cid0."_".($start-$i);
                     for(my $tmp=$i-1; $tmp>=0; $tmp--) { $cid=$cid."|".($start-$tmp); }
-                    for(my $tmp=0; $tmp<scalar(@usage); $tmp++) { if(($usage[$tmp] eq 1) and ($Reachable[1+$tmp] eq 1)){ $cid=$cid."|".($start+1+$tmp); }   }
+                    for(my $tmp=0; $tmp<scalar(@usage); $tmp++) { if($usage[$tmp] eq 1) { $cid=$cid."|".($start+1+$tmp); }   }
                     $cid=$cid."|".$end;
                     for(my $tmp=1; $tmp<=$j; $tmp++) { $cid=$cid."|".($end+$tmp); }
                     if (exists $usedcid{$cid}) { next;} else { $usedcid{$cid}=1; }
@@ -273,7 +350,7 @@ while(<IN>) {
                         $exoncnt++;
                     }
                     for(my $tmp=0; $tmp<scalar(@usage); $tmp++) {
-                        if(($usage[$tmp] eq 1) and ($Reachable[1+$tmp] eq 1)){
+                        if($usage[$tmp] eq 1) {
                             my @b=split("\t",$anno{$left[0]}{$start+$tmp});
                             my $info=join(" ","gene_id","\"$cid\"\;","transcript_id","\"$cid\"\;","gene_name","\"$gene_name\"\;","gene_name2","\"$gene_name2\"\;","exon_number","\"$exoncnt\"");
                             print OUT1gtf join("\t",$b[0],$b[1],$b[2],$b[3],$b[4],$b[5],$b[6],$b[7],$info),"\n";

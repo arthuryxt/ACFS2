@@ -94,6 +94,12 @@ if (exists $SPEC{"UNMAP2"}) {
     }
 }
 
+my $is_fasta=1;
+open(IN1, $SPEC{"UNMAP"});
+my $line=<IN1>;
+chomp $line;
+if ($line=~/^@/) { $is_fasta=0;}
+close IN1;
 
 open(OUT, ">".$fileout) or die "ERROR: Cannot open output_sh file $fileout";
 print OUT "#!/bin/bash\n\n";
@@ -171,7 +177,12 @@ if (($SPEC{"UNMAP_expr"} eq "no") and (exists $SPEC{"UNMAP2"})) {
     if (exists $SPEC{"bowtie2_folder"}) {
         $command=$SPEC{"bowtie2_folder"}."/bowtie2-build -q -o 1 temp_circ.CL temp_circ.CL.bt2index";
         print OUT $command,"\n";
-        $command=$SPEC{"bowtie2_folder"}."/bowtie2 -p ".$thread." -f -a -x temp_circ.CL.bt2index -1 ".$SPEC{"UNMAP"}." -2 ".$SPEC{"UNMAP2"}." > temp_circ.bt2map2";
+        if ($is_fasta eq 1) {
+            $command=$SPEC{"bowtie2_folder"}."/bowtie2 -p ".$thread." -f -a -x temp_circ.CL.bt2index -1 ".$SPEC{"UNMAP"}." -2 ".$SPEC{"UNMAP2"}." > temp_circ.bt2map2";
+        }
+        else {
+            $command=$SPEC{"bowtie2_folder"}."/bowtie2 -p ".$thread." -a -x temp_circ.CL.bt2index -1 ".$SPEC{"UNMAP"}." -2 ".$SPEC{"UNMAP2"}." > temp_circ.bt2map2";
+        }
         print OUT $command,"\n";
         $command="perl ".$SPEC{"ACF_folder"}."/ACF_Step5_process_bt2aln.pl circRNA_candidates temp_circ.bt2map2 ".$SPEC{"UNMAP_expr"}." temp_circ_MEA temp_circ_CBR $stranded $Junc ".$SPEC{"Seq_len"}." $ER";
         print OUT $command,"\n";
@@ -188,7 +199,12 @@ if (($SPEC{"UNMAP_expr"} eq "no") and (exists $SPEC{"UNMAP2"})) {
     if (exists $SPEC{"bowtie2_folder"}) {
         $command=$SPEC{"bowtie2_folder"}."/bowtie2-build -q -o 1 temp_circ.CL temp_circ.CL.bt2index";
         print OUT $command,"\n";
-        $command=$SPEC{"bowtie2_folder"}."/bowtie2 -p ".$thread." -f -a -x temp_circ.CL.bt2index -U ".$SPEC{"UNMAP"}." > temp_circ.bt2map";
+        if ($is_fasta eq 1) {
+            $command=$SPEC{"bowtie2_folder"}."/bowtie2 -p ".$thread." -f -a -x temp_circ.CL.bt2index -U ".$SPEC{"UNMAP"}." > temp_circ.bt2map";
+        }
+        else {
+            $command=$SPEC{"bowtie2_folder"}."/bowtie2 -p ".$thread." -a -x temp_circ.CL.bt2index -U ".$SPEC{"UNMAP"}." > temp_circ.bt2map";
+        }
         print OUT $command,"\n";
         $command="perl ".$SPEC{"ACF_folder"}."/ACF_Step5_process_bt2aln.pl circRNA_candidates temp_circ.bt2map ".$SPEC{"UNMAP_expr"}." temp_circ_MEA temp_circ_CBR $stranded $Junc ".$SPEC{"Seq_len"}." $ER";
         print OUT $command,"\n";

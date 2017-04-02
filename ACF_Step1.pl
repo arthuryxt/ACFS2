@@ -148,10 +148,15 @@ while(<IN>) {
             my %anno;
             my %Chr;
             my @p=split("\t",$info);
+            if ($MAS > 0) {
+                my $tmpmax=0;
+                for(@p) { my @tmp=split(/\,/,$_); if ($tmp[3] > $tmpmax) {$tmpmax=$tmp[3]}; }
+                if ($tmpmax < $MAS) { next; }
+            }
             for(@p) {
                 my @tmp=split(/\,/,$_);
                 # ignore bad-quality alignments
-                if ($tmp[3] < $MAS) {next;}
+                # if ($tmp[3] < $MAS) {next;}
                 my $strandy="+";
                 if ($tmp[1]=~m/^-/){
                     $strandy="-";
@@ -201,29 +206,29 @@ while(<IN>) {
             }
             # each part hit once
             if ($chromo eq "") {
-                my $result=$Len;
-                my $cov1=0; 
-                my $cov2=0; 
-                my @Cov;
-                for(my $i=0; $i<$Len; $i++) { $Cov[$i]=0; }
-                foreach my $id(sort keys %anno) {
-                    foreach my $pos (sort{$a <=> $b} keys %{$anno{$id}}) {
-                        $result=$result."\t".$id."\t".$pos."\t".$anno{$id}{$pos};
-                        my @t=split("\t",$anno{$id}{$pos});
-                        for(my $i=0; $i<$t[0]; $i++) {$Cov[$i+$pos]=1;}
-                    }
-                }
-                my $first=-1;
-                my $last=-1;
-                for(my $i=0; $i<$Len; $i++) {
-                    if ($Cov[$i] eq 1) {
-                        $cov1++;
-                        if ($first eq -1) {$first = $i;}
-                        $last=$i;
-                    }
-                }
-                $cov2=$last - $first + 1;
-                if ($cov1 > 0) { print OUT2 $a[0],"\t",$cov2,"\t",$cov1,"\t",$result,"\t",$indel,"\n"; }
+                #my $result=$Len;
+                #my $cov1=0; 
+                #my $cov2=0; 
+                #my @Cov;
+                #for(my $i=0; $i<$Len; $i++) { $Cov[$i]=0; }
+                #foreach my $id(sort keys %anno) {
+                #    foreach my $pos (sort{$a <=> $b} keys %{$anno{$id}}) {
+                #        $result=$result."\t".$id."\t".$pos."\t".$anno{$id}{$pos};
+                #        my @t=split("\t",$anno{$id}{$pos});
+                #        for(my $i=0; $i<$t[0]; $i++) {$Cov[$i+$pos]=1;}
+                #    }
+                #}
+                #my $first=-1;
+                #my $last=-1;
+                #for(my $i=0; $i<$Len; $i++) {
+                #    if ($Cov[$i] eq 1) {
+                #        $cov1++;
+                #        if ($first eq -1) {$first = $i;}
+                #        $last=$i;
+                #    }
+                #}
+                #$cov2=$last - $first + 1;
+                #if ($cov1 > 0) { print OUT2 $a[0],"\t",$cov2,"\t",$cov1,"\t",$result,"\t",$indel,"\n"; }
             }
             # exactly two-hitter, interesting !!!
             elsif ($Chr{$chromo} eq 2) {
@@ -432,10 +437,15 @@ while(<IN>) {
             my %anno;
             my %Chr;
             my @p=split("\t",$info);
+            if ($MAS > 0) {
+                my $tmpmax=0;
+                for(@p) { my @tmp=split(/\,/,$_); if ($tmp[3] > $tmpmax) {$tmpmax=$tmp[3]}; }
+                if ($tmpmax < $MAS) { next; }
+            }
             for(@p) {
                 my @tmp=split(/\,/,$_);
                 # ignore bad-quality alignments
-                if ($tmp[3] < $MAS) {next;}
+                # if ($tmp[3] < $MAS) {next;}
                 my $strandy="+";
                 if ($tmp[1]=~m/^-/){
                     $strandy="-";
@@ -485,29 +495,29 @@ while(<IN>) {
             }
             # each part hit once
             if ($chromo eq "") {
-                my $result=$Len;
-                my $cov1=0; 
-                my $cov2=0; 
-                my @Cov;
-                for(my $i=0; $i<$Len; $i++) { $Cov[$i]=0; }
-                foreach my $id(sort keys %anno) {
-                    foreach my $pos (sort{$a <=> $b} keys %{$anno{$id}}) {
-                        $result=$result."\t".$id."\t".$pos."\t".$anno{$id}{$pos};
-                        my @t=split("\t",$anno{$id}{$pos});
-                        for(my $i=0; $i<$t[0]; $i++) {$Cov[$i+$pos]=1;}
-                    }
-                }
-                my $first=-1;
-                my $last=-1;
-                for(my $i=0; $i<$Len; $i++) {
-                    if ($Cov[$i] eq 1) {
-                        $cov1++;
-                        if ($first eq -1) {$first = $i;}
-                        $last=$i;
-                    }
-                }
-                $cov2=$last - $first + 1;
-                if ($cov1 > 0) { print OUT2 "rc_".$a[0],"\t",$cov2,"\t",$cov1,"\t",$result,"\t",$indel,"\n"; }
+                #my $result=$Len;
+                #my $cov1=0; 
+                #my $cov2=0; 
+                #my @Cov;
+                #for(my $i=0; $i<$Len; $i++) { $Cov[$i]=0; }
+                #foreach my $id(sort keys %anno) {
+                #    foreach my $pos (sort{$a <=> $b} keys %{$anno{$id}}) {
+                #        $result=$result."\t".$id."\t".$pos."\t".$anno{$id}{$pos};
+                #        my @t=split("\t",$anno{$id}{$pos});
+                #        for(my $i=0; $i<$t[0]; $i++) {$Cov[$i+$pos]=1;}
+                #    }
+                #}
+                #my $first=-1;
+                #my $last=-1;
+                #for(my $i=0; $i<$Len; $i++) {
+                #    if ($Cov[$i] eq 1) {
+                #        $cov1++;
+                #        if ($first eq -1) {$first = $i;}
+                #        $last=$i;
+                #    }
+                #}
+                #$cov2=$last - $first + 1;
+                #if ($cov1 > 0) { print OUT2 "rc_".$a[0],"\t",$cov2,"\t",$cov1,"\t",$result,"\t",$indel,"\n"; }
             }
             # exactly two-hitter, interesting !!!
             elsif ($Chr{$chromo} eq 2) {

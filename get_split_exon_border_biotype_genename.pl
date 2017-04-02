@@ -224,9 +224,11 @@ foreach my $id (keys %uniq) {
     }
     for(my $i=1; $i<=$Fr; $i++) {
         my $splicing="";
-        if ((exists $Term{$FStart[$i]}) or (exists $splitpos{$FStart[$i]})) { $splicing="0"; }
+        if (exists $Term{$FStart[$i]}) { $splicing="2"; }
+        elsif (exists $splitpos{$FStart[$i]}) { $splicing="0"; }
         else { $splicing="1"; }
-        if ((exists $Term{$FEnd[$i]}) or (exists $splitpos{$FEnd[$i]})) { $splicing=$splicing."0"; }
+        if (exists $Term{$FEnd[$i]}) { $splicing=$splicing."2"; }
+        elsif (exists $splitpos{$FEnd[$i]}) { $splicing=$splicing."0"; }
         else { $splicing=$splicing."1"; }
         print OUT join("\t",$chrinfo[1],"split","exon",$FStart[$i],$FEnd[$i],$biotype{$id},$chrinfo[2],$Gname{$id},$chrinfo[0]."___".$i."___".$Fr."___".$splicing),"\n";
     }
