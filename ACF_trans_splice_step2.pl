@@ -131,7 +131,7 @@ while (<INseq>) {
         else { $seq=$seq.$line; }
     }
 }
-if (($id ne "") and ($seq eq "")) { $CHRSEQ{$id}=$seq;}
+if (($id ne "") and ($seq ne "")) { $CHRSEQ{$id}=$seq;}
 close INseq;
 
 open(OUT1, ">".$fileout.".tsloci");

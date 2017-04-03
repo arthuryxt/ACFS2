@@ -33,6 +33,20 @@ while(<IN2>) {
 }
 close IN2;
 
+sub dec2bin {
+    my $str = unpack("B32", pack("N", shift));
+    #$str =~ s/^0+(?=\d)//; # otherwise you'll get leading zeros return $str;
+    my $decode = substr($str,-12);
+    return $decode;
+}
+sub reverseStrand($){
+    my $s=shift;
+    my $r;
+    if ($s eq "+") { $r="-";}
+    else{$r="+";}
+    return $r;
+}
+
 my %uniq;   # store processed ID
 open IN, $filein1;
 open OUT1,">".$fileout.".1";
@@ -43,18 +57,53 @@ while(<IN>) {
     chomp;
     if ((m/^#/) or (m/^@/)) {next;}
     my @a=split("\t",$_);
-	if (($a[2] eq "*") or ($a[1] eq 4)) { next; }
-	my $strand="+";
-    if ($a[1] eq 16) {$strand="-";}
+	my $cFlag=dec2bin($a[1]);
+    my @aFlag=split('',$cFlag);
+	if ($aFlag[-3] eq 1) { next; }
+    my $strand="+";
+    if ($aFlag[-5] eq 1) {$strand="-";}
+    if ($aFlag[-8] eq 1) {$strand=reverseStrand($strand); $a[0]="R2_".$a[0];}
 	my $exp=$expand;
 	if ($Ref{$a[2]} < 2*$expand) { $exp=int($Ref{$a[2]}/2); }
 	my $readlen=length($a[9]);
 	if(scalar(@a) > 14){
-		my $info="";
 		my @d=split(/\:/,$a[11]);
-		my @b=split(/\:/,$a[14]);
-        my @c=split(/\;/,$b[2]);
-        $info=join("\t",join("\,",$a[2],$strand.$a[3],$a[5],$a[4],$d[2]),@c);
+		my $info="";
+		# $a[14] in bwa-0.7.3a : XP:Z:13,-91704253,49M52S,60,0;
+		# $a[15] in bwa-0.7.15 : SA:Z:13,91704253,-,49M52S,60,0;
+		for(my $i=11; $i<scalar(@a); $i++) {
+			if ($a[$i]=~m/^XP:Z:/) {
+				my @b=split(/:/,$a[$i]);
+				my @c=split(/\;/,$b[2]);
+				if ($aFlag[-8] eq 0) {
+					$info=join("\t",join("\,",$a[2],$strand.$a[3],$a[5],$a[4],$d[2]),@c);
+				}
+				else {
+					for (my $j=0; $j<scalar(@c); $j++) {
+						my @tmpp=split(/\,/,$c[$j]);
+						my $tmpstrand=substr($tmpp[1],0,1);
+						my $tmppos=substr($tmpp[1],1);
+						$tmpp[1]=reverseStrand($tmpstrand).$tmppos;
+						$c[$j]=join(",",@tmpp);
+					}
+					$info=join("\t",join("\,",$a[2],$strand.$a[3],$a[5],$a[4],$d[2]),@c);
+				}
+				last;
+			}
+			elsif ($a[$i]=~m/^SA\:Z\:/) {
+				my @b=split(/:/,$a[$i]);
+				my @c=split(/\;/,$b[2]);
+				for(my $j=0; $j<scalar(@c); $j++) {
+					if (length($c[$j]) > 1) {
+						my @tmp=split(/\,/,$c[$j]);
+						if ($aFlag[-8] eq 0) { $c[$j]=join(",",$tmp[0],$tmp[2].$tmp[1],$tmp[3],$tmp[4],$tmp[5]); }
+						else { $c[$j]=join(",",$tmp[0],reverseStrand($tmp[2]).$tmp[1],$tmp[3],$tmp[4],$tmp[5]); }
+					}
+				}
+				$info=join("\t",join("\,",$a[2],$strand.$a[3],$a[5],$a[4],$d[2]),@c);
+				last;
+			}
+		}
 		my %anno;
         my %Chr;
         my @p=split("\t",$info);

@@ -14,7 +14,7 @@ my %uniq;   # store processed ID
 open IN, $filein;
 open OUT,">".$fileout.".tmp";
 open OUT1,">".$fileout.".1";    # single hit
-open OUT2,">".$fileout.".multi";
+#open OUT2,">".$fileout.".multi";
 open OUT4,">".$fileout.".segs";
 open OUT21,">".$fileout.".2pp"; # two hits on the same chr and same strand
 open OUT22,">".$fileout.".2pm"; # two hits on the same chr BUT Different strand

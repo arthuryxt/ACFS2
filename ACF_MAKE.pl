@@ -79,6 +79,7 @@ if (exists $SPEC{"blat_search"}) { $do_blat_search=$SPEC{"blat_search"}; }
 if ($blat_path eq "") { $do_blat_search="no"; }
 if (exists $SPEC{"trans_splicing_coverage"}) { $ts_coverage=$SPEC{"trans_splicing_coverage"}; }
 if (exists $SPEC{"trans_splicing_minMappingQuality"}) { $ts_MAS=$SPEC{"trans_splicing_minMappingQuality"}; }
+$ts_minSSSum=$minSSSum;
 if (exists $SPEC{"trans_splicing_minSplicingScore"}) { $ts_minSSSum=$SPEC{"trans_splicing_minSplicingScore"}; }
 if (exists $SPEC{"trans_splicing_maxSpan"}) { $ts_maxSpan=$SPEC{"trans_splicing_maxSpan"}; }
 
@@ -231,9 +232,9 @@ print OUT "date\n";
 
 if (($search_trans_splicing eq "yes") and (!exists $SPEC{"UNMAP2"})) {
     print OUT "\n#Extra Step\: finding trans_splicing events\n";
-    $command="perl ".$SPEC{"ACF_folder"}."/ACF_trans_splice_step1.pl ".$SPEC{"CBR_folder"}."/ temp.unmap.parsed.tmp ".$SPEC{"genome_fasta"}."/ temp.unmap.trans.splicing $ts_coverage 15 $ts_MAS $maxJump";
+    $command="perl ".$SPEC{"ACF_folder"}."/ACF_trans_splice_step1.pl ".$SPEC{"CBR_folder"}."/ temp.unmap.parsed.tmp ".$SPEC{"genome_fasta"}." temp.unmap.trans.splicing $ts_coverage 15 $ts_MAS $maxJump";
     print OUT $command,"\n";
-    $command="perl ".$SPEC{"ACF_folder"}."/ACF_trans_splice_step2.pl temp.unmap.trans.splicing ".$SPEC{"genome_fasta"}."/ temp.unmap.trans.splicing ".$SPEC{"Seq_len"}." $ts_minSSSum ".$SPEC{"Agtf"};
+    $command="perl ".$SPEC{"ACF_folder"}."/ACF_trans_splice_step2.pl temp.unmap.trans.splicing ".$SPEC{"genome_fasta"}." temp.unmap.trans.splicing ".$SPEC{"Seq_len"}." $ts_minSSSum ".$SPEC{"Agtf"};
     print OUT $command,"\n";
     if (($do_blat_search eq "yes") and (-e $SPEC{"BWA_genome_Index"})) {
         #increasing the -minScore parameter value beyond one-half of the query size has no further effect
@@ -257,7 +258,7 @@ if (($search_trans_splicing eq "yes") and (!exists $SPEC{"UNMAP2"})) {
         print OUT $command,"\n";
         $command=$SPEC{"BWA_folder"}."/bwa mem -t ".$thread." -k ".$bwa_seed_len." -T ".$bwa_min_score." temp.unmap.trans.splicing.tsloci.fa.good ".$SPEC{"UNMAP"}." \> temp.unmap.trans.splicing.sam";
         print OUT $command,"\n";
-        $command="perl ".$SPEC{"ACF_folder"}."/ACF_Step5.pl temp.unmap.trans.splicing.sam temp.unmap.trans.splicing.tsloci.fa vunmap.trans.splicing.p1 ".$SPEC{"Seq_len"}." $Junc $ER $stranded";
+        $command="perl ".$SPEC{"ACF_folder"}."/ACF_Step5.pl temp.unmap.trans.splicing.sam temp.unmap.trans.splicing.tsloci.fa temp.unmap.trans.splicing.p1 ".$SPEC{"Seq_len"}." $Junc $ER $stranded";
         print OUT $command,"\n";
         $command="perl ".$SPEC{"ACF_folder"}."/ACF_trans_splice_step3.pl temp.unmap.parsed.tmp temp.unmap.trans.splicing ".$SPEC{"UNMAP_expr"};
         print OUT $command,"\n";
@@ -269,7 +270,7 @@ if (($search_trans_splicing eq "yes") and (!exists $SPEC{"UNMAP2"})) {
         print OUT $command,"\n";
         $command=$SPEC{"BWA_folder"}."/bwa mem -t ".$thread." -k ".$bwa_seed_len." -T ".$bwa_min_score." temp.unmap.trans.splicing.tsloci.fa ".$SPEC{"UNMAP"}." \> temp.unmap.trans.splicing.sam";
         print OUT $command,"\n";
-        $command="perl ".$SPEC{"ACF_folder"}."/ACF_Step5.pl temp.unmap.trans.splicing.sam temp.unmap.trans.splicing.tsloci.fa unmap.trans.splicing.p1 ".$SPEC{"Seq_len"}." $Junc $ER $stranded";
+        $command="perl ".$SPEC{"ACF_folder"}."/ACF_Step5.pl temp.unmap.trans.splicing.sam temp.unmap.trans.splicing.tsloci.fa temp.unmap.trans.splicing.p1 ".$SPEC{"Seq_len"}." $Junc $ER $stranded";
         print OUT $command,"\n";
         $command="perl ".$SPEC{"ACF_folder"}."/ACF_trans_splice_step3.pl temp.unmap.parsed.tmp temp.unmap.trans.splicing ".$SPEC{"UNMAP_expr"};
         print OUT $command,"\n";
@@ -281,6 +282,8 @@ if (($search_trans_splicing eq "yes") and (!exists $SPEC{"UNMAP2"})) {
 print OUT "date\n";
 
 if ($remove_temp eq "yes") {
+    $command="mv temp.unmap.trans.splicing.expr trans.splicing.expr";
+    print OUT $command,"\n";
     $command="rm -rf temp\*";
     print OUT $command,"\n";
     $command="rm -rf Step*finished";

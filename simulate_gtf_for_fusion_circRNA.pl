@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 use strict;
-die "Usage: $0  \"input_gtf\"   \"output\"  \"\(optional\)Nr_fusion_transcripts==10\"   \"\(optional\)min_Exons==5\"  \"\(optional\)minExonLen==100\"    " if (@ARGV < 2);
+die "Usage: $0  \"input_gtf\"   \"output\"  \"\(optional\)Nr_fusion_transcripts==10\"   \"\(optional\)min_Exons==5\"  \"\(optional\)minExonLen==100\"  \"\(optional\)one_circ_per_gene==1 or 0\"  \"\(optional\)debug\"   " if (@ARGV < 2);
 my $gtf=$ARGV[0];
 my $fileout=$ARGV[1];
 my $NrFT=10;
@@ -9,6 +9,10 @@ my $min_Exs=5;
 if (scalar(@ARGV) > 3) { $min_Exs=$ARGV[3]; }
 my $minExonLen=100;
 if (scalar(@ARGV) > 4) { $minExonLen=$ARGV[4]; }
+my $one_circ_per_gene=1;	# if set to 0, then >1 fusion_circRNA will be generated from two genes, which might cause confusion
+if (scalar(@ARGV) > 5) { $one_circ_per_gene=$ARGV[5]; }
+my $debug=0;
+if (scalar(@ARGV) > 6) { $debug=$ARGV[6]; }
 my %uniq;
 my %biotype;
 my %Gname;
@@ -56,7 +60,19 @@ while(<IN>) {
     }
 }
 close IN;
+my $OKgenecnt=0;
+for(my $i=0; $i<$gcnt; $i++) {
+	if ($minExLen{$Gid[$i]} > $minExonLen) { $OKgenecnt++; }
+    if ($debug > 0) { print join("\t",$i,$Gid[$i],$minExLen{$Gid[$i]}),"\n"; }
+}
+print "reading gtf done\n There are $gcnt genes, and among which, $OKgenecnt will be used for simulation\n";
+if ($one_circ_per_gene eq 1) {
+    my $tmp=int($OKgenecnt/2);
+	if ($tmp < $NrFT) { $NrFT=$tmp; print "Generating $NrFT fusion transcripts\n";}
+}
+
 open(OUT, ">".$fileout);
+my %used;
 my %circ;
 for (my $i=1; $i<=$NrFT; $i++) {
 	my $left_gid=int(rand($gcnt-1));
@@ -68,6 +84,8 @@ for (my $i=1; $i<=$NrFT; $i++) {
 		$right_gid=int(rand($gcnt-1));
 		@aR=split("\t",$Gid[$right_gid]);
 	}
+	if ((exists $used{$left_gid."\t".$right_gid}) or (exists $used{$right_gid."\t".$left_gid})) { next; }
+	elsif($one_circ_per_gene eq 1) { $used{$left_gid."\t".$right_gid}=1; $used{$right_gid."\t".$left_gid}=1; }
     my $left_Ex1=2+int(rand($ExonCnt{$Gid[$left_gid]}-3));
 	my $left_Ex2=2+int(rand($ExonCnt{$Gid[$left_gid]}-3));
 	while ($left_Ex1 > $left_Ex2) {

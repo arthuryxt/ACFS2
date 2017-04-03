@@ -130,8 +130,10 @@ while(<IN>) {
             
         }
     }
+    if ($debug > 0) { print join("\t",@a0),"\nmulit=\n",$multi,"\n"; }
     if ($multi eq "") { next; }
     my @a=split("\t",$multi);
+    
     
     # remove the above if start from "unmap.parsed.multi"
     # and enable the following line:
@@ -391,8 +393,13 @@ while (<INseq>) {
         else { $seq=$seq.$line; }
     }
 }
-if (($id ne "") and ($seq eq "")) { $CHRSEQ{$id}=$seq;}
+if (($id ne "") and ($seq ne "")) { $CHRSEQ{$id}=$seq;}
 close INseq;
+if ($debug > 0) {
+    foreach my $chr (keys %CHRSEQ) { print ">".$chr,"\n"; }
+}
+
+
 
 foreach my $id (keys %READ) {
 	my @a=split("\t",$READ{$id});
