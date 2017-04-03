@@ -102,6 +102,21 @@ sub dec2bin {
     return $decode;
 }
 
+sub getSeqLenFromCIGAR ($) {
+    my $MD=$_[0];
+    my @CIGAR_op=($MD=~m/[MSHID]/g); 
+    my @CIGAR_va=($MD=~m/\d+/g);
+    my $Nr=scalar(@CIGAR_op);
+    my $length=0;
+    for(my $i=0; $i<$Nr; $i++){
+        if ($CIGAR_op[$i] eq "M") {$length+=$CIGAR_va[$i]; }
+        elsif ($CIGAR_op[$i] eq "D") {}
+        elsif ($CIGAR_op[$i] eq "I") {$length+=$CIGAR_va[$i]; }
+        elsif (($CIGAR_op[$i] eq "S") or ($CIGAR_op[$i] eq "H")) { $length+=$CIGAR_va[$i]; }
+    }
+    return($length);
+}
+
 my %uniq;
 my %uniq2;
 my %len;
@@ -124,70 +139,7 @@ while (<IN>) {
     my $cFlag=dec2bin($a[1]);
     my @aFlag=split('',$cFlag);
     if ($aFlag[-3] eq 1) { next; }
-    if ($aFlag[-1] eq 0) {
-        # SE reads
-        if (($strandness eq "+") and ($aFlag[-5] eq 1)) { next; }
-        if (($strandness eq "-") and ($aFlag[-5] eq 0)) { next; }
-        my $NM=99999;
-        my $MD="";
-        for(my $i=11; $i<scalar(@a); $i++) {
-            if ($a[$i]=~m/NM/) {
-                my @b=split(/\:/,$a[$i]);
-                $NM=$b[2];
-            }
-            if ($a[$i]=~m/MD/) { $MD=$a[$i]; }
-        }
-        # Number of Mismatches has to also count unmapped part
-        my @CIGAR_op=($a[5]=~m/[MSHID]/g); 
-        my @CIGAR_va=($a[5]=~m/\d+/g);
-        my $Nr=scalar(@CIGAR_op);
-        my $unmappedlen=0;
-        for(my $i=0; $i<$Nr; $i++){
-            if ($CIGAR_op[$i] eq "S") {$unmappedlen+=$CIGAR_va[$i]; }
-            elsif ($CIGAR_op[$i] eq "H") {$unmappedlen+=$CIGAR_va[$i]; }
-        }
-        $NM+=$unmappedlen;
-        my $errors=$errorrate;
-        if ((0 < $errorrate) and ($errorrate < 1)) {  $errors=length($a[9])*$errorrate; }
-        if ($NM > $errors) { next; }
-        my $seqid=$a[0];
-        my @b=split(/\_\_\_/,$a[2]);
-        my @c=split(/\_/,$b[0]);
-        my @d=split(/\|/,$c[4]);
-        my $length=0;
-        if (exists $len{$b[0]}) { $length=$len{$b[0]}; }
-        my $myinsert=$insertSize;
-        if ($length < 2*$myinsert) { $myinsert=int($length/2); }
-        if ((($a[3] + $junc) <= ($length - $myinsert)) and (($length - $myinsert) <= ($a[3] + length($a[9]) - $junc) )) {
-            if (exists $uniq{$seqid}) {
-                if ($debug > 0) { print $uniq{$seqid},"\n",join("\t",@a),"\n"; }
-                my @tmpc=split("\t",$uniq{$seqid});
-                if ($tmpc[2] > $NM) { # select the one with fewer mismatches
-                    $uniq{$seqid}=join("\t",$b[0],scalar(@d),$NM,$a[3],$a[5],$MD,$length);
-                }
-                elsif ($tmpc[2] eq $NM) { 
-                    if (exists $cidstat{$b[0]}) { 
-                        my $Nr=int(scalar(@tmpc)/7);
-                        my $flag=0;
-                        for(my $i=0; $i<$Nr; $i++) { if(exists $cidstat{$tmpc[7*$i]}){ $flag++;} }
-                        if ($debug > 0) { print "this is good\t",$flag,"\n"; }
-                        if ($flag eq 0) { $uniq{$seqid}=join("\t",$b[0],scalar(@d),$NM,$a[3],$a[5],$MD,$length);}
-                        else { $uniq{$seqid}=join("\t",$uniq{$seqid},$b[0],scalar(@d),$NM,$a[3],$a[5],$MD,$length); }
-                    }
-                    else {
-                        my $Nr=int(scalar(@tmpc)/7);
-                        my $flag=0;
-                        for(my $i=0; $i<$Nr; $i++) { if(exists $cidstat{$tmpc[7*$i]}){ $flag++;} }
-                        if ($debug > 0) { print "hash is good\t",$flag,"\n"; }
-                        if ($flag eq 0) { $uniq{$seqid}=join("\t",$uniq{$seqid},$b[0],scalar(@d),$NM,$a[3],$a[5],$MD,$length); }
-                    }
-                }
-                if ($debug > 0) { print $uniq{$seqid},"\n\n"; }
-            }
-            else { $uniq{$seqid}=join("\t",$b[0],scalar(@d),$NM,$a[3],$a[5],$MD,$length); }
-        }
-    }
-    else {
+    if ($aFlag[-1] eq 1) {
         # PE reads
         if (($aFlag[-7] eq 1) and ($strandness eq "-") and ($aFlag[-5] eq 0)) { next; }
         if (($aFlag[-8] eq 1) and ($strandness eq "-") and ($aFlag[-5] eq 1)) { next; }
@@ -230,10 +182,74 @@ while (<IN>) {
         if (exists $uniq2{$seqid}{$b[0]}{$mate}) {
             my @tmp=split("\t",$uniq2{$seqid}{$b[0]}{$mate});
             if ($NM < $tmp[1]) {
-                $uniq2{$seqid}{$b[0]}{$mate}=join("\t",length($a[9]),scalar(@d),$NM,$a[3],$a[5],$MD,$length);
+                $uniq2{$seqid}{$b[0]}{$mate}=join("\t",getSeqLenFromCIGAR($a[5]),scalar(@d),$NM,$a[3],$a[5],$MD,$length);
             }
         }
-        else { $uniq2{$seqid}{$b[0]}{$mate}=join("\t",length($a[9]),scalar(@d),$NM,$a[3],$a[5],$MD,$length); }
+        else { $uniq2{$seqid}{$b[0]}{$mate}=join("\t",getSeqLenFromCIGAR($a[5]),scalar(@d),$NM,$a[3],$a[5],$MD,$length); }
+    }
+    elsif (($aFlag[-1] eq 0) or ($aFlag[-2] eq 0)) {
+        # SE reads
+        if (($strandness eq "+") and ($aFlag[-5] eq 1) and ($aFlag[-1] eq 0)) { next; }
+        if (($strandness eq "-") and ($aFlag[-5] eq 0) and ($aFlag[-1] eq 0)) { next; }
+        my $NM=99999;
+        my $MD="";
+        for(my $i=11; $i<scalar(@a); $i++) {
+            if ($a[$i]=~m/NM/) {
+                my @b=split(/\:/,$a[$i]);
+                $NM=$b[2];
+            }
+            if ($a[$i]=~m/MD/) { $MD=$a[$i]; }
+        }
+        # Number of Mismatches has to also count unmapped part
+        my @CIGAR_op=($a[5]=~m/[MSHID]/g); 
+        my @CIGAR_va=($a[5]=~m/\d+/g);
+        my $Nr=scalar(@CIGAR_op);
+        my $unmappedlen=0;
+        for(my $i=0; $i<$Nr; $i++){
+            if ($CIGAR_op[$i] eq "S") {$unmappedlen+=$CIGAR_va[$i]; }
+            elsif ($CIGAR_op[$i] eq "H") {$unmappedlen+=$CIGAR_va[$i]; }
+        }
+        $NM+=$unmappedlen;
+        my $errors=$errorrate;
+        if ((0 < $errorrate) and ($errorrate < 1)) {  $errors=length($a[9])*$errorrate; }
+        if ($NM > $errors) { next; }
+        my $seqid=$a[0];
+        my @b=split(/\_\_\_/,$a[2]);
+        my @c=split(/\_/,$b[0]);
+        my @d=split(/\|/,$c[4]);
+        my $length=0;
+        if (exists $len{$b[0]}) { $length=$len{$b[0]}; }
+        my $myinsert=$insertSize;
+        if ($length < 2*$myinsert) { $myinsert=int($length/2); }
+        my $seqlen=getSeqLenFromCIGAR($a[5]);
+        if ((($a[3] + $junc) <= ($length - $myinsert)) and (($length - $myinsert) <= ($a[3] + $seqlen - $junc) )) {
+            if (exists $uniq{$seqid}) {
+                if ($debug > 0) { print $uniq{$seqid},"\n",join("\t",@a),"\n"; }
+                my @tmpc=split("\t",$uniq{$seqid});
+                if ($tmpc[3] > $NM) { # select the one with fewer mismatches
+                    $uniq{$seqid}=join("\t",$b[0],$seqlen,scalar(@d),$NM,$a[3],$a[5],$MD,$length);
+                }
+                elsif ($tmpc[3] eq $NM) { 
+                    if (exists $cidstat{$b[0]}) { 
+                        my $Nr=int(scalar(@tmpc)/8);
+                        my $flag=0;
+                        for(my $i=0; $i<$Nr; $i++) { if(exists $cidstat{$tmpc[8*$i]}){ $flag++;} }
+                        if ($debug > 0) { print "this is good\t",$flag,"\n"; }
+                        if ($flag eq 0) { $uniq{$seqid}=join("\t",$b[0],$seqlen,scalar(@d),$NM,$a[3],$a[5],$MD,$length);}
+                        else { $uniq{$seqid}=join("\t",$uniq{$seqid},$b[0],$seqlen,scalar(@d),$NM,$a[3],$a[5],$MD,$length); }
+                    }
+                    else {
+                        my $Nr=int(scalar(@tmpc)/8);
+                        my $flag=0;
+                        for(my $i=0; $i<$Nr; $i++) { if(exists $cidstat{$tmpc[8*$i]}){ $flag++;} }
+                        if ($debug > 0) { print "hash is good\t",$flag,"\n"; }
+                        if ($flag eq 0) { $uniq{$seqid}=join("\t",$uniq{$seqid},$b[0],$seqlen,scalar(@d),$NM,$a[3],$a[5],$MD,$length); }
+                    }
+                }
+                if ($debug > 0) { print $uniq{$seqid},"\n\n"; }
+            }
+            else { $uniq{$seqid}=join("\t",$b[0],$seqlen,scalar(@d),$NM,$a[3],$a[5],$MD,$length); }
+        }
     }
 }
 close IN;
@@ -276,26 +292,6 @@ open(OUT1, ">".$fileout.".reads");
 open(OUT2, ">".$fileout.".uncertain");
 my %uncertain;
 my %EXPR;
-foreach my $read (keys %uniq){
-    my @tmp=split("\t",$uniq{$read});
-    my $Nr=int(scalar(@tmp)/7);
-    if ($Nr > 1) {
-        $uncertain{$read}=$uniq{$read};
-        print OUT2 $read,"\t",$uniq{$read},"\n";
-    }
-    else {
-        print OUT1 $read,"\t",$uniq{$read},"\n";
-        if (exists $EXPR{$tmp[0]}) {
-            my @samples=split("\t",$Anno{$read});
-            my @stored=split("\t",$EXPR{$tmp[0]});
-            for (my $i=0; $i<scalar(@samples); $i++) { $stored[$i]+=$samples[$i]; }
-            $EXPR{$tmp[0]}=join("\t",@stored);
-        }
-        else{
-            $EXPR{$tmp[0]}=$Anno{$read};
-        }
-    }
-}
 
 foreach my $read (keys %uniq2){
     my %mismatches;
@@ -323,6 +319,9 @@ foreach my $read (keys %uniq2){
                 if (exists $cidstat{$circ}) { $good++;}
             }
         }
+        else {
+            
+        }
     }
     if ($debug > 0) { print $good,"\n";}
     my $Scirc="";
@@ -346,12 +345,37 @@ foreach my $read (keys %uniq2){
             }
         }
         elsif ($count > 1) {
+            my $min_len=99999999;
+            my $shortest_circ="";
             foreach my $circ (keys %mismatches) {
                 if ($mismatches{$circ} eq $min) {
-                    $uncertain{$read}=join("\t",$circ,$uniq2{$read}{$circ}{1},$uniq2{$read}{$circ}{2});
+                    if (!exists $uncertain{$read}) {
+                        $uncertain{$read}=join("\t",$circ,$uniq2{$read}{$circ}{1},$uniq2{$read}{$circ}{2});
+                    }
+                    else {
+                        $uncertain{$read}=join("\t",$uncertain{$read},$circ,$uniq2{$read}{$circ}{1},$uniq2{$read}{$circ}{2});
+                    }
+                    print OUT2 join("\t",$read,$circ,$uniq2{$read}{$circ}{1},$uniq2{$read}{$circ}{2}),"\n";
+                    my @tmp=split("\t",$uniq2{$read}{$circ}{1});
+                    if ($tmp[6] < $min_len) {
+                        $min_len=$tmp[6];
+                        $shortest_circ=$circ;
+                    }
                 }
             }
-            print OUT2 $read,"\t",$uncertain{$read},"\n";
+            
+            if ($shortest_circ ne "") {
+                print OUT1 join("\t",$read,$Scirc,$uniq2{$read}{$shortest_circ}{1},$uniq2{$read}{$shortest_circ}{2}),"\n";
+                if (exists $EXPR{$shortest_circ}) {
+                    my @samples=split("\t",$Anno{$read});
+                    my @stored=split("\t",$EXPR{$shortest_circ});
+                    for (my $i=0; $i<scalar(@samples); $i++) { $stored[$i]+=$samples[$i]; }
+                    $EXPR{$shortest_circ}=join("\t",@stored);
+                }
+                else{
+                    $EXPR{$shortest_circ}=$Anno{$read};
+                }
+            }
         }
     }
     else {
@@ -374,12 +398,78 @@ foreach my $read (keys %uniq2){
             }
         }
         elsif ($count > 1) {
+            my $min_len=99999999;
+            my $shortest_circ="";
             foreach my $circ (keys %mismatches) {
                 if ($mismatches{$circ} eq $min) {
-                    $uncertain{$read}=join("\t",$circ,$uniq2{$read}{$circ}{1},$uniq2{$read}{$circ}{2});
+                    if (!exists $uncertain{$read}) {
+                        $uncertain{$read}=join("\t",$circ,$uniq2{$read}{$circ}{1},$uniq2{$read}{$circ}{2});
+                    }
+                    else {
+                        $uncertain{$read}=join("\t",$uncertain{$read},$circ,$uniq2{$read}{$circ}{1},$uniq2{$read}{$circ}{2});
+                    }
+                    print OUT2 join("\t",$read,$circ,$uniq2{$read}{$circ}{1},$uniq2{$read}{$circ}{2}),"\n";
+                    my @tmp=split("\t",$uniq2{$read}{$circ}{1});
+                    if ($tmp[6] < $min_len) {
+                        $min_len=$tmp[6];
+                        $shortest_circ=$circ;
+                    }
                 }
             }
-            print OUT2 $read,"\t",$uncertain{$read},"\n";
+            
+            if ($shortest_circ ne "") {
+                print OUT1 join("\t",$read,$Scirc,$uniq2{$read}{$shortest_circ}{1},$uniq2{$read}{$shortest_circ}{2}),"\n";
+                if (exists $EXPR{$shortest_circ}) {
+                    my @samples=split("\t",$Anno{$read});
+                    my @stored=split("\t",$EXPR{$shortest_circ});
+                    for (my $i=0; $i<scalar(@samples); $i++) { $stored[$i]+=$samples[$i]; }
+                    $EXPR{$shortest_circ}=join("\t",@stored);
+                }
+                else{
+                    $EXPR{$shortest_circ}=$Anno{$read};
+                }
+            }
+        }
+    }
+}
+
+foreach my $read (keys %uniq){
+    my @tmp=split("\t",$uniq{$read});
+    my $Nr=int(scalar(@tmp)/8);
+    if ($Nr > 1) {
+        $uncertain{$read}=$uniq{$read};
+        print OUT2 $read,"\t",$uniq{$read},"\n";
+        # pick the shortest circRNA to report
+        my $circ=0;
+        my $min_len=99999999;
+        for(my $i=0; $i<$Nr; $i++) {
+            if ($tmp[8*$i + 7] < $min_len) {
+                $min_len=$tmp[8*$i + 7];
+                $circ=$i;
+            }
+        }
+        
+        print OUT1 $read,"\t",join("\t",$tmp[8*$circ],$tmp[8*$circ+1],$tmp[8*$circ+2],$tmp[8*$circ+3],$tmp[8*$circ+4],$tmp[8*$circ+5],$tmp[8*$circ+6],$tmp[8*$circ+7]),"\n";
+        if (exists $EXPR{$tmp[8*$circ]}) {
+            my @samples=split("\t",$Anno{$read});
+            my @stored=split("\t",$EXPR{$tmp[8*$circ]});
+            for (my $i=0; $i<scalar(@samples); $i++) { $stored[$i]+=$samples[$i]; }
+            $EXPR{$tmp[0]}=join("\t",@stored);
+        }
+        else{
+            $EXPR{$tmp[0]}=$Anno{$read};
+        }
+    }
+    else {
+        print OUT1 $read,"\t",$uniq{$read},"\n";
+        if (exists $EXPR{$tmp[0]}) {
+            my @samples=split("\t",$Anno{$read});
+            my @stored=split("\t",$EXPR{$tmp[0]});
+            for (my $i=0; $i<scalar(@samples); $i++) { $stored[$i]+=$samples[$i]; }
+            $EXPR{$tmp[0]}=join("\t",@stored);
+        }
+        else{
+            $EXPR{$tmp[0]}=$Anno{$read};
         }
     }
 }

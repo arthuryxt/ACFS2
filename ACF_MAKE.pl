@@ -37,7 +37,8 @@ my $ts_MAS=0;
 my $ts_minSSSum=$minSSSum;
 my $ts_maxSpan=$maxJump;
 my $remove_temp="yes";
-my $make_AS="0";
+my $make_AS="1";
+my $max_AS=10;
 my $UNMAP2="no";
 # check if all parameters are set
 if (!exists $SPEC{"BWA_folder"}) { die "ERROR: BWA_folder must by specified in the config_file $filein";}
@@ -55,8 +56,9 @@ if (!exists $SPEC{"Seq_len"}) { die "ERROR: length of SE reads or insert_size(me
 if (exists $SPEC{"bowtie2_folder"}) { print "Bowtie2 will be used, insteand of BWA, for abundance quantification.\n";}
 if (exists $SPEC{"remove_temp"}) { $remove_temp=$SPEC{"remove_temp"}; }
 if (exists $SPEC{"make_AS"}) { $make_AS=$SPEC{"make_AS"}; }
-if ($make_AS eq 1 ) { print "All potential Alternative splicing events will be enumerated. This can be very slow.\n"; }
+if (exists $SPEC{"max_AS"}) { $max_AS=$SPEC{"max_AS"}; }
 if (($make_AS ne 0) and ($make_AS ne 1)) { die "make_AS can be either 1 or 0\n"; }
+if ($make_AS eq 1 ) { print "Potential Alternative splicing events will be enumerated for BSJs containing up to $max_AS split-exons. This can be very slow.\n"; }
 if (exists $SPEC{"Thread"}) { $thread=$SPEC{"Thread"}; }
 if (exists $SPEC{"minJump"}) { $minJump=$SPEC{"minJump"}; }
 if (exists $SPEC{"maxJump"}) { $maxJump=$SPEC{"maxJump"}; }
@@ -156,9 +158,9 @@ print OUT "echo \"Step4 annotate_select_and_make_pseudo_sequences_for_circles St
 $command="perl ".$SPEC{"ACF_folder"}."/ACF_Step4.pl temp_circ temp.unmap.parsed.2pp.S3 ".$SPEC{"Agtf"}." 0 $minJump $maxJump $minSSSum";
 print OUT $command,"\n";
 
-$command="perl ".$SPEC{"ACF_folder"}."/ACF_Step4_MEA.pl temp_circ_MEA temp_circ_MEA ".$SPEC{"Agtf"}." ".$make_AS." ".$SPEC{"Seq_len"};
+$command="perl ".$SPEC{"ACF_folder"}."/ACF_Step4_MEA.pl temp_circ_MEA temp_circ_MEA ".$SPEC{"Agtf"}." ".$make_AS." ".$max_AS." ".$SPEC{"Seq_len"};
 print OUT $command,"\n";
-$command="perl ".$SPEC{"ACF_folder"}."/ACF_Step4_CBR.pl temp_circ_CBR temp_circ_CBR ".$SPEC{"Agtf"}." ".$make_AS." ".$SPEC{"Seq_len"};
+$command="perl ".$SPEC{"ACF_folder"}."/ACF_Step4_CBR.pl temp_circ_CBR temp_circ_CBR ".$SPEC{"Agtf"}." ".$make_AS." ".$max_AS." ".$SPEC{"Seq_len"};
 print OUT $command,"\n";
 $command="perl ".$SPEC{"ACF_folder"}."/get_split_exon_border_biotype_genename.pl temp_circ.agtf temp_circ_MEA.gtf temp_circ_MEA.ext.gtf temp_circ_CBR.gtf temp_circ_CBR.ext.gtf temp.pre_defined_circRNA.agtf";
 print OUT $command,"\n";

@@ -54,10 +54,11 @@ Optional parameters, the values in below are set as default:
 
 | Parameter | value | Note |
 | --------- | ----- | ---- |
-| bowtie2_folder | /home/bin/bowtie2/  | path of the folder of bowtie2. Bowtie2 can be more sensitive in dealing with multiple mapping. Bowtie2 will be used for abundance quantification insteand of BWA if provided |
+| bowtie2_folder | /home/bin/bowtie2/  | path of the folder of bowtie2. Bowtie2 can be more sensitive in dealing with multiple mapping. Bowtie2 is **recommended** for abundance quantification |
 | remove_temp | yes | set to "no" to keep all temp files |
-| make_AS | 1 | set to 0 to assume all internal exons are presented in the circRNA |
-| Thread | 16 | number of threads used in bwa |
+| make_AS | 0 | set to 0 to assume all internal exons are presented in the circRNA; set to 1 to assess **possible exon combinations** within BSJ;  |
+| max_AS | 10 | assess possible AS events if there are **less than 10** exons within BSJ, as the possibility grows exponentially  |
+| Thread | 16 | number of threads used in bwa or bowtie2 |
 | BWA_seed_length | 16 | bwa seed length  |
 | BWA_min_score | 20 | bwa min score to trigger report. For shorter reads, e.g. 50nt, set to 10 or lower could report more circRNAs at risk of higher FDR |
 | minJump | 100 | the minimum distance of a back-splice. The smaller, the more likely you can find circles from short exons |
