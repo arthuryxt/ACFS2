@@ -153,7 +153,7 @@ Optional parameters, the values in below are set as default:
 
 
 # Tutorial
-We provide two toy examples in the ```SE_example``` folder and ```PE_example```. Follow the README file inside each folder and run ACFS2.
+We provide two toy examples in the ```SE_example``` folder and ```PE_example```. Follow the README file inside each folder and run ACFS2. For fusion circRNA identification, see ```fusion_circ_example```.
 
 
 
@@ -192,7 +192,7 @@ To see the usage, simply run the perl scripts with no arguments.
     ```
     simulate_gtf_for_fusion_circRNA.pl
     get_split_exon_border_biotype_genename.pl
-    get_seq_from_agtf.pl
+    get_seq_from_agtf_from_genomefa.pl
     get_id_from_simulate_fusion_circRNA_gtf.pl
     ```
 
