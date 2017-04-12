@@ -265,16 +265,9 @@ while(<IN>) {
                     if ($i eq $end) { $tmp_e=$a[2]; }
                     if ($debug > 0) {print join("\t",$b[0],$b[1],$b[2],$tmp_s,$tmp_e,$b[5],$b[6],$b[7]),"\n";}
                     print OUT join("\t",$b[0],$b[1],$b[2],$tmp_s,$tmp_e,$b[5],$b[6],$b[7],$info),"\n";
-                    if ($strand eq "+") {
-                        $ExonL[$i-$start]=$tmp_s;
-                        $ExonR[$i-$start]=$tmp_e;
-                        $ExonLen[$i-$start]=$tmp_e+1-$tmp_s;
-                    }
-                    else {
-                        $ExonL[$end-$i]=$tmp_s;
-                        $ExonR[$end-$i]=$tmp_e;
-                        $ExonLen[$end-$i]=$tmp_e+1-$tmp_s;
-                    }
+                    $ExonL[$i-$start]=$tmp_s;
+                    $ExonR[$i-$start]=$tmp_e;
+                    $ExonLen[$i-$start]=$tmp_e+1-$tmp_s;
                 }
                 my $Nr=$end-$start+1;
                 print OUTrefFlat join("\t",$a[6],$cid,$a[1],$strand,$a[3],$a[2]+1,$a[3],$a[3],$Nr,join(",",@ExonL),join(",",@ExonR),$a[17],$a[18],$a[19],$a[21],$a[22],$a[23]),"\n";
@@ -295,21 +288,20 @@ while(<IN>) {
                         if ($debug > 0) { print $cid,"\t",join("",@usage),"\n"; }
                         my $exonL=$ExonL[0]-1;
                         my $exonR=$ExonR[0];
-                        if ($strand eq "-") { $exonL=$ExonL[$Nr-1]-1; $exonR=$ExonR[$Nr-1]; }
                         my $info=join(" ","gene_id","\"$cid\"\;","transcript_id","\"$cid\"\;","gene_name","\"$gene_name\"\;","gene_name2","\"$gene_name2\"\;","exon_number","\"1\"");
                         print OUT1gtf join("\t",$a[1],"split","exon",$ExonL[0],$ExonR[0],".",$a[20],$gene_name,$info),"\n";
                         my $exoncnt=1;
                         for(my $j=0; $j<scalar(@usage); $j++) {
                             if($usage[$j] eq 1){
-                                if ($strand eq "+") { $exonL=$exonL.",".($ExonL[1+$j]-1); $exonR=$exonR.",".$ExonR[1+$j]; }
-                                else { $exonL=($ExonL[1+$j]-1).",".$exonL; $exonR=$ExonR[1+$j].",".$exonR; } 
+                                $exonL=$exonL.",".($ExonL[1+$j]-1);
+                                $exonR=$exonR.",".$ExonR[1+$j];
                                 $exoncnt++;
                                 $info=join(" ","gene_id","\"$cid\"\;","transcript_id","\"$cid\"\;","gene_name","\"$gene_name\"\;","gene_name2","\"$gene_name2\"\;","exon_number","\"$exoncnt\"");
                                 print OUT1gtf join("\t",$a[1],"split","exon",$ExonL[1+$j],$ExonR[1+$j],".",$a[20],$gene_name,$info),"\n";
                             }
                         }
-                        if ($strand eq "+") { $exonL=$exonL.",".($ExonL[$Nr-1]-1); $exonR=$exonR.",".$ExonR[$Nr-1]; }
-                        else { $exonL=($ExonL[0]-1).",".$exonL; $exonR=$ExonR[0].",".$exonR; } 
+                        $exonL=$exonL.",".($ExonL[$Nr-1]-1);
+                        $exonR=$exonR.",".$ExonR[$Nr-1];
                         $exoncnt++;
                         $info=join(" ","gene_id","\"$cid\"\;","transcript_id","\"$cid\"\;","gene_name","\"$gene_name\"\;","gene_name2","\"$gene_name2\"\;","exon_number","\"$exoncnt\"");
                         print OUT1gtf join("\t",$a[1],"split","exon",$ExonL[$Nr-1],$ExonR[$Nr-1],".",$a[20],$gene_name,$info),"\n";
