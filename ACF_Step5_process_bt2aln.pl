@@ -21,6 +21,30 @@ if ($errorrate <= 0) { die "cutoff must be non-negative: (0,1] means error_rate;
 my $debug=0;
 if (scalar(@ARGV) > 9) {$debug=$ARGV[9];}
 
+my %usedreads;
+my $tmpS3=$MEA;
+if (-e $tmpS3) {
+    open(IN1, $tmpS3);
+    while (<IN1>) {
+        chomp;
+        my @a=split("\t",$_);
+        my @b=split(/\,/,$a[26]);
+        for(@b){ my $id=$_; if($id=~m/^rc\_R2\_/){$id=~s/^rc\_R2\_//;} if($id=~m/^rc\_/){$id=~s/^rc\_//;}  if($id=~m/^R2\_/){$id=~s/^R2\_//;}  $usedreads{$id}=$a[0]; }
+    }
+    close IN1;
+}
+$tmpS3=$CBR;
+if (-e $tmpS3) {
+    open(IN1, $tmpS3);
+    while (<IN1>) {
+        chomp;
+        my @a=split("\t",$_);
+        my @b=split(/\,/,$a[26]);
+        for(@b){ my $id=$_; if($id=~m/^rc\_R2\_/){$id=~s/^rc\_R2\_//;} if($id=~m/^rc\_/){$id=~s/^rc\_//;}  if($id=~m/^R2\_/){$id=~s/^R2\_//;}  $usedreads{$id}=$a[0]; }
+    }
+    close IN1;
+}
+#foreach my $id (sort keys %usedreads){print $id,"\t",$usedreads{$id},"\n";}
 my %refFlat;
 my $fileintmp=$MEA.".refFlat";
 if (-e $fileintmp) {
@@ -119,6 +143,8 @@ sub getSeqLenFromCIGAR ($) {
 
 my %uniq;
 my %uniq2;
+my %reads;
+my %reads2;
 my %len;
 open(IN, $filein);
 while (<IN>) {
@@ -136,11 +162,18 @@ while (<IN>) {
     next if (m/^#/);
     next if (m/^>/);
     my @a=split("\t",$_);
+    $a[0]=~s/\/1$//;
+    $a[0]=~s/\/2$//;
     my $cFlag=dec2bin($a[1]);
     my @aFlag=split('',$cFlag);
     if ($aFlag[-3] eq 1) { next; }
     if ($aFlag[-1] eq 1) {
         # PE reads
+        my $seqid=$a[0];
+        my $mate=1;
+        if ($aFlag[-8] eq 1) { $mate=2; }
+        if ((exists $usedreads{$a[0]}) and (!exists $reads2{$a[0]}{$mate}) ) { $reads2{$a[0]}{$mate}=$a[8];}
+        
         if (($aFlag[-7] eq 1) and ($strandness eq "-") and ($aFlag[-5] eq 0)) { next; }
         if (($aFlag[-8] eq 1) and ($strandness eq "-") and ($aFlag[-5] eq 1)) { next; }
         if (($aFlag[-7] eq 1) and ($strandness eq "+") and ($aFlag[-5] eq 1)) { next; }
@@ -168,10 +201,6 @@ while (<IN>) {
         if ((0 < $errorrate) and ($errorrate < 1)) {  $errors=length($a[9])*$errorrate; }
         if ($NM > $errors) { next; }
         
-        my $seqid=$a[0];
-        my $mate=1;
-        if ($aFlag[-8] eq 1) { $mate=2; }
-        
         my @b=split(/\_\_\_/,$a[2]);
         my @c=split(/\_/,$b[0]);
         my @d=split(/\|/,$c[4]);
@@ -186,9 +215,15 @@ while (<IN>) {
             }
         }
         else { $uniq2{$seqid}{$b[0]}{$mate}=join("\t",getSeqLenFromCIGAR($a[5]),scalar(@d),$NM,$a[3],$a[5],$MD,$length); }
+        if ((exists $reads2{$seqid}) and (exists $reads2{$seqid}{$mate}) and (length($reads2{$seqid}{$mate}) < length($a[8]))){
+            $reads2{$seqid}{$mate}=$a[8];
+        }
+        else {$reads2{$seqid}{$mate}=$a[8];}
+        
     }
     elsif (($aFlag[-1] eq 0) or ($aFlag[-2] eq 0)) {
         # SE reads
+        if ((exists $usedreads{$a[0]}) and (!exists $reads{$a[0]})) { $reads{$a[0]}=$a[8];}
         if (($strandness eq "+") and ($aFlag[-5] eq 1) and ($aFlag[-1] eq 0)) { next; }
         if (($strandness eq "-") and ($aFlag[-5] eq 0) and ($aFlag[-1] eq 0)) { next; }
         my $NM=99999;
@@ -249,10 +284,18 @@ while (<IN>) {
                 if ($debug > 0) { print $uniq{$seqid},"\n\n"; }
             }
             else { $uniq{$seqid}=join("\t",$b[0],$seqlen,scalar(@d),$NM,$a[3],$a[5],$MD,$length); }
+            $reads{$seqid}=$a[8];
         }
     }
 }
 close IN;
+
+my %circMap;
+foreach my $id (keys %len) {
+    my @a=split(/\_/,$id);
+    my $newid=join("_",$a[0],$a[1],$a[2],$a[3]);
+    $circMap{$newid}{$id}=1;
+}
 
 my %Anno;
 my $header="";
@@ -278,6 +321,7 @@ else {
     @Header=split("\t",$header);
     $Header[0]=$Header[0]."\tGname";
     $header=join("\t",@Header);
+    foreach my $id(keys %usedreads) { $Anno{$id}=1; }
     foreach my $id(keys %uniq) { $Anno{$id}=1; }
     foreach my $id(keys %uniq2) { $Anno{$id}=1; }
 }
@@ -292,6 +336,7 @@ open(OUT1, ">".$fileout.".reads");
 open(OUT2, ">".$fileout.".uncertain");
 my %uncertain;
 my %EXPR;
+my %usedreads2;
 
 foreach my $read (keys %uniq2){
     my %mismatches;
@@ -334,6 +379,7 @@ foreach my $read (keys %uniq2){
         }
         if ($count eq 1) {
             print OUT1 join("\t",$read,$Scirc,$uniq2{$read}{$Scirc}{1},$uniq2{$read}{$Scirc}{2}),"\n";
+            $usedreads2{$read}=1;
             if (exists $EXPR{$Scirc}) {
                 my @samples=split("\t",$Anno{$read});
                 my @stored=split("\t",$EXPR{$Scirc});
@@ -366,6 +412,7 @@ foreach my $read (keys %uniq2){
             
             if ($shortest_circ ne "") {
                 print OUT1 join("\t",$read,$Scirc,$uniq2{$read}{$shortest_circ}{1},$uniq2{$read}{$shortest_circ}{2}),"\n";
+                $usedreads2{$read}=1;
                 if (exists $EXPR{$shortest_circ}) {
                     my @samples=split("\t",$Anno{$read});
                     my @stored=split("\t",$EXPR{$shortest_circ});
@@ -387,6 +434,7 @@ foreach my $read (keys %uniq2){
         }
         if ($count eq 1) {
             print OUT1 join("\t",$read,$Scirc,$uniq2{$read}{$Scirc}{1},$uniq2{$read}{$Scirc}{2}),"\n";
+            $usedreads2{$read}=1;
             if (exists $EXPR{$Scirc}) {
                 my @samples=split("\t",$Anno{$read});
                 my @stored=split("\t",$EXPR{$Scirc});
@@ -419,6 +467,7 @@ foreach my $read (keys %uniq2){
             
             if ($shortest_circ ne "") {
                 print OUT1 join("\t",$read,$Scirc,$uniq2{$read}{$shortest_circ}{1},$uniq2{$read}{$shortest_circ}{2}),"\n";
+                $usedreads2{$read}=1;
                 if (exists $EXPR{$shortest_circ}) {
                     my @samples=split("\t",$Anno{$read});
                     my @stored=split("\t",$EXPR{$shortest_circ});
@@ -450,6 +499,7 @@ foreach my $read (keys %uniq){
         }
         
         print OUT1 $read,"\t",join("\t",$tmp[8*$circ],$tmp[8*$circ+1],$tmp[8*$circ+2],$tmp[8*$circ+3],$tmp[8*$circ+4],$tmp[8*$circ+5],$tmp[8*$circ+6],$tmp[8*$circ+7]),"\n";
+        $usedreads2{$read}=1;
         if (exists $EXPR{$tmp[8*$circ]}) {
             my @samples=split("\t",$Anno{$read});
             my @stored=split("\t",$EXPR{$tmp[8*$circ]});
@@ -462,6 +512,7 @@ foreach my $read (keys %uniq){
     }
     else {
         print OUT1 $read,"\t",$uniq{$read},"\n";
+        $usedreads2{$read}=1;
         if (exists $EXPR{$tmp[0]}) {
             my @samples=split("\t",$Anno{$read});
             my @stored=split("\t",$EXPR{$tmp[0]});
@@ -473,6 +524,35 @@ foreach my $read (keys %uniq){
         }
     }
 }
+
+foreach my $read (keys %usedreads) {
+    my $circ=$usedreads{$read};
+    if ((exists $circMap{$circ}) and (!exists $usedreads2{$read})) {
+        my $cnt=0;
+        if (exists $reads{$read})  {
+            print OUT1 join("\t",$read,$circ,0,0,0,0,0,0,0),"\n";
+        }
+        else {
+            print OUT1 join("\t",$read,$circ,0,0,0,0,0,0,0,0,0,0,0,0,0,0),"\n";
+        }
+        foreach my $mycirc (keys %{$circMap{$circ}}) {$cnt++;}
+        foreach my $mycirc (keys %{$circMap{$circ}}) {
+            if (exists $EXPR{$mycirc}) {
+                my @samples=split("\t",$Anno{$read});
+                my @stored=split("\t",$EXPR{$mycirc});
+                for (my $i=0; $i<scalar(@samples); $i++) { $stored[$i]+=$samples[$i]/$cnt; }
+                $EXPR{$mycirc}=join("\t",@stored);
+            }
+            else{
+                my @samples=split("\t",$Anno{$read});
+                my @stored;
+                for (my $i=0; $i<scalar(@samples); $i++) { $stored[$i]=$samples[$i]/$cnt; }
+                $EXPR{$mycirc}=join("\t",@stored);
+            }
+        }
+    }
+}
+
 close OUT1;
 close OUT2;
 
