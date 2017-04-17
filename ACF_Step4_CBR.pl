@@ -228,7 +228,7 @@ while(<IN>) {
             $cidstat{$cid}=1;
             my $info=join(" ","gene_id","\"$cid\"\;","transcript_id","\"$cid\"\;","gene_name","\"$gene_name\"\;","gene_name2","\"$gene_name2\"\;","exon_number","\"1\"");
             print OUT join("\t",$a[1],"split","exon",$left,$right,"na",$a[20],$gene_name,$info),"\n";
-            print OUTrefFlat join("\t","na",$cid,$a[1],$a[20],$left,$right+1,$left,$left,1,$left,$right+1,$a[17],$a[18],$a[19],$a[21],$a[22],$a[23]),"\n";
+            print OUTrefFlat join("\t","na",$cid,$a[1],$a[20],$left-1,$right,$left-1,$left-1,1,$left-1,$right,$a[17],$a[18],$a[19],$a[21],$a[22],$a[23]),"\n";
         }
         else {
             my $start=-1;
@@ -254,6 +254,8 @@ while(<IN>) {
                 my @ExonR;
                 my @ExonLen;
                 my $exoncnt=0;
+                my $exonL=-1;
+                my $exonR=-1;
                 for(my $i=$start; $i<=$end; $i++) {
                     my @b=split("\t",$anno{$gene_name}{$i});
                     if ($debug > 0) {print join("\t",@b),"\n";}
@@ -268,9 +270,11 @@ while(<IN>) {
                     $ExonL[$i-$start]=$tmp_s;
                     $ExonR[$i-$start]=$tmp_e;
                     $ExonLen[$i-$start]=$tmp_e+1-$tmp_s;
+                    if ($exonL eq -1) { $exonL=$tmp_s-1; $exonR=$tmp_e }
+                    else { $exonL=$exonL.",".($tmp_s-1); $exonR=$exonR.",".$tmp_e; }
                 }
                 my $Nr=$end-$start+1;
-                print OUTrefFlat join("\t",$a[6],$cid,$a[1],$strand,$a[3],$a[2]+1,$a[3],$a[3],$Nr,join(",",@ExonL),join(",",@ExonR),$a[17],$a[18],$a[19],$a[21],$a[22],$a[23]),"\n";
+                print OUTrefFlat join("\t",$a[6],$cid,$a[1],$strand,$a[3]-1,$a[2],$a[3]-1,$a[3]-1,$Nr,$exonL,$exonR,$a[17],$a[18],$a[19],$a[21],$a[22],$a[23]),"\n";
                 
                 if (($make_combi > 0) and ($Nr > 2) and ($max_AS >= $Nr)) {
                     my $apase="1";
@@ -315,7 +319,7 @@ while(<IN>) {
                 $cidstat{$cid}=1;
                 my $info=join(" ","gene_id","\"$cid\"\;","transcript_id","\"$cid\"\;","gene_name","\"$gene_name\"\;","gene_name2","\"$gene_name2\"\;","exon_number","\"1\"");
                 print OUT join("\t",$a[1],"split","exon",$left,$right,"na",$a[20],$gene_name,$info),"\n";
-                print OUTrefFlat join("\t","na",$cid,$a[1],$a[20],$left,$right+1,$left,$left,1,$left,$right+1,$a[17],$a[18],$a[19],$a[21],$a[22],$a[23]),"\n";
+                print OUTrefFlat join("\t","na",$cid,$a[1],$a[20],$left-1,$right,$left-1,$left-1,1,$left-1,$right,$a[17],$a[18],$a[19],$a[21],$a[22],$a[23]),"\n";
             }
         }
     }
@@ -326,7 +330,7 @@ while(<IN>) {
         my $gene_name="na";
         my $info=join(" ","gene_id","\"$cid\"\;","transcript_id","\"$cid\"\;","gene_name","\"$gene_name\"\;","gene_name2","\"$gene_name\"\;","exon_number","\"1\"");
         print OUT join("\t",$a[1],"split","exon",$left,$right,"na",$a[20],$gene_name,$info),"\n";
-        print OUTrefFlat join("\t","na",$cid,$a[1],$a[20],$left,$right+1,$left,$left,1,$left,$right+1,$a[17],$a[18],$a[19],$a[21],$a[22],$a[23]),"\n";
+        print OUTrefFlat join("\t","na",$cid,$a[1],$a[20],$left-1,$right,$left-1,$left-1,1,$left-1,$right,$a[17],$a[18],$a[19],$a[21],$a[22],$a[23]),"\n";
     }
 }
 

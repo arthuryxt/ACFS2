@@ -46,7 +46,7 @@ foreach my $id (keys %uniq) {
 }
 close OUT;
 my $fileout2=$fileout.".s";
-$command="sort -k2,2 -k3,4n $fileout > $fileout2";
+$command="sort -k2,2 -k6,6nr -k3,4n $fileout > $fileout2";
 system($command);
 $command="rm -f $fileout";
 system($command);

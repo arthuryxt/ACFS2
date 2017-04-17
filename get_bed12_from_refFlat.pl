@@ -26,7 +26,9 @@ close INe;
 
 open(IN, $filein1) || die "Can't open $filein1 for reading!\n";
 open(OUT, ">".$fileout) || die "Can't open $fileout for writing!\n";
-#
+# GTF/GFF and Ensembl : 1-based start, 1-based end;
+# UCSC data           : 0-based start, 1-based end;
+# UCSC display        : 1-based start, 1-based end;
 # format examples: 
 # I. refFlat   half-open zero-based. This means that the first 100 bases of a chromosome are represented as [0,100), i.e. 0-99.
 # XLOC_005566 TCONS_00012033  chr6  + 171030441 171044890 171030441 171030441 3 171030441,171037018,171044838,  171030573,171037146,171044890,
@@ -55,17 +57,21 @@ while (<IN>) {
         $col5=$a[12]."_".$a[13];
         #for(my $i=12; $i<=16; $i++){ $col5=$col5."_".$a[$i]; }
     }
-    my $score=sprintf("%.3f",log($cnt) + log($SScore));
+    if ($cnt <=0 ) { $cnt=0.1; }
+    my $SSsign=1;
+    if ($SScore > 1) { $SSsign=1; }
+    else { $SSsign=-1; $SScore=2-$SScore; }
+    my $score=sprintf("%.3f",log($cnt) + $SSsign * log($SScore));
     
     my $lengths="";
     my $starts="";
     my @Start=split(/\,/,$a[9]);
     my @End=split(/\,/,$a[10]);
-    $a[4]--;
-    $a[5]--;
+    #$a[4]--;
+    #$a[5]--;
     for (my $i=0; $i<$a[8]; $i++) {
-        my $cur_s = $Start[$i] - $a[4] - 1;
-        my $cur_l = $End[$i] - $Start[$i] + 1;
+        my $cur_s = $Start[$i] - $a[4];
+        my $cur_l = $End[$i] - $Start[$i];
         $lengths = $lengths.$cur_l.',';
         $starts = $starts.$cur_s.',';
     }

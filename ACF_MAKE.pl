@@ -223,7 +223,7 @@ if (($SPEC{"UNMAP_expr"} eq "no") and (exists $SPEC{"UNMAP2"})) {
 }
 
 
-$command="perl ".$SPEC{"ACF_folder"}."/get_bed12_from_refFlat.pl circRNA_candidates.bed12 circRNA_candidates_refFlat circRNA_candidates_expr no no ";
+$command="perl ".$SPEC{"ACF_folder"}."/get_bed12_from_refFlat.pl circRNA_candidates.bed12 circRNA_candidates_refFlat circRNA_candidates_expr circRNA_candidates.bed12";
 print OUT $command,"\n";
 
 

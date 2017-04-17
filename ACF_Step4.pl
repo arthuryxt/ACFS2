@@ -2,7 +2,7 @@
 use strict;
 use strict;
 # check overlapping of known exons border, NOTE that borders must NOT overlap!
-die "Usage: $0 \"output_basename\"   \"defined_clusters\"  \"split_exon_gtf\"   \"\(optional\) extend_N_bases==0\"   \"\(optional\) minimum_BS_distance==100\"   \"\(optional\) maximum_BS_distance==1000000\"    \"\(optional\)minimum_SS_Score==10\"   \"\(DEBUG==1\)\"" if (@ARGV < 3);
+die "Usage: $0 \"output_basename\"   \"defined_clusters\"  \"split_exon_gtf\"   \"\(optional\) extend_N_bases==0\"   \"\(optional\) minimum_BS_distance==100\"   \"\(optional\) maximum_BS_distance==1000000\"    \"\(optional\)minimum_SS_Score==10\"    \"\(optional\)select the strand with higher Sscore==1_or_0\"     \"\(DEBUG==1\)\"" if (@ARGV < 3);
 my $fileout=$ARGV[0];
 my $filein=$ARGV[1];   
 my $agtf=$ARGV[2];      
@@ -14,8 +14,10 @@ my $maxgap=1000000;
 if (scalar(@ARGV) > 5) {$maxgap=$ARGV[5];}
 my $minSSScore=10;
 if (scalar(@ARGV) > 6) {$minSSScore=$ARGV[6];}
+my $selecthighSS=1;
+if (scalar(@ARGV) > 7) {$selecthighSS=$ARGV[7];}
 my $debug=0;
-if (scalar(@ARGV) > 7) {$debug=$ARGV[7];}
+if (scalar(@ARGV) > 8) {$debug=$ARGV[8];}
 my $command="rm -f Step4_finished";
 system($command);
 
@@ -44,6 +46,7 @@ if ($agtf ne "no") {
     close IN;
 }
 
+my %circ3;
 open IN,$filein;
 open OUT,">".$fileout;
 while(<IN>) {
@@ -55,6 +58,9 @@ while(<IN>) {
         next;
     }
     my @a=split("\t",$_);
+    my @b=split(/\_/,$a[0]);
+    my $tmpcirc3=join("_",$b[0],$b[1],$b[2]);
+    if(exists $circ3{$tmpcirc3}){ my @tmp=split("\t",$circ3{$tmpcirc3}); if($a[5] > $tmp[1]){ $circ3{$tmpcirc3}=join("\t",$a[0],$a[5]); } }else { $circ3{$tmpcirc3}=join("\t",$a[0],$a[5]); }
     # 11_73679503_73677183_+2320	11	73679503	73677183	-2320	18.25	10.47	7.78	+	5	3	2	3	3	newid-1190341__1,
     if ($debug) {print join("\t",@a),"\n";}
     my $info_left="";
@@ -247,6 +253,14 @@ while (<IN>) {
     chomp;
     next if (m/^#/);
     my @a=split("\t",$_);
+    my @b=split(/\_/,$a[0]);
+    my $tmpcirc3=join("_",$b[0],$b[1],$b[2]);
+    my @tmp=split("\t",$circ3{$tmpcirc3});
+    if (($selecthighSS eq 1) and ($tmp[0] ne $a[0])) {
+        print OUTT3 join("\t",@a),"\n";
+        next;
+    }
+    
     if (($a[4] <= (0-$mingap)) and ($a[4] >= (0-$maxgap)) and ($a[17] >= $minSSScore)) {
         if (($a[6] eq $a[12]) and ($a[6] ne "na")) {
             my @left=split(/\_\_\_/,$a[5]);

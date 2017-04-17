@@ -22,6 +22,7 @@ my $debug=0;
 if (scalar(@ARGV) > 9) {$debug=$ARGV[9];}
 
 my %usedreads;
+my %scorereads;
 my $tmpS3=$MEA;
 if (-e $tmpS3) {
     open(IN1, $tmpS3);
@@ -29,7 +30,11 @@ if (-e $tmpS3) {
         chomp;
         my @a=split("\t",$_);
         my @b=split(/\,/,$a[26]);
-        for(@b){ my $id=$_; if($id=~m/^rc\_R2\_/){$id=~s/^rc\_R2\_//;} if($id=~m/^rc\_/){$id=~s/^rc\_//;}  if($id=~m/^R2\_/){$id=~s/^R2\_//;}  $usedreads{$id}=$a[0]; }
+        for(@b){
+            my $id=$_; if($id=~m/^rc\_R2\_/){$id=~s/^rc\_R2\_//;} if($id=~m/^rc\_/){$id=~s/^rc\_//;}  if($id=~m/^R2\_/){$id=~s/^R2\_//;}
+            if(exists $usedreads{$id}){ if($scorereads{$id} < $a[17]){ $usedreads{$id}=$a[0]; $scorereads{$id}=$a[17];  } }
+            else{ $usedreads{$id}=$a[0]; $scorereads{$id}=$a[17]; }
+        }
     }
     close IN1;
 }
@@ -40,7 +45,11 @@ if (-e $tmpS3) {
         chomp;
         my @a=split("\t",$_);
         my @b=split(/\,/,$a[26]);
-        for(@b){ my $id=$_; if($id=~m/^rc\_R2\_/){$id=~s/^rc\_R2\_//;} if($id=~m/^rc\_/){$id=~s/^rc\_//;}  if($id=~m/^R2\_/){$id=~s/^R2\_//;}  $usedreads{$id}=$a[0]; }
+        for(@b){
+            my $id=$_; if($id=~m/^rc\_R2\_/){$id=~s/^rc\_R2\_//;} if($id=~m/^rc\_/){$id=~s/^rc\_//;}  if($id=~m/^R2\_/){$id=~s/^R2\_//;}
+            if(exists $usedreads{$id}){ if($scorereads{$id} < $a[17]){ $usedreads{$id}=$a[0]; $scorereads{$id}=$a[17];  } }
+            else{ $usedreads{$id}=$a[0]; $scorereads{$id}=$a[17]; }
+        }
     }
     close IN1;
 }

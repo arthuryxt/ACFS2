@@ -215,14 +215,38 @@ while(<IN>) {
     if ($a[7] ne $a[20]) { print OUT3 "discrepancy in annotation and read strandness\t",join("\t",@a),"\n"; next; }
     if ($a[2] ne $a[10]) { print OUT3 "discrepancy in left-border\t",join("\t",@a),"\n"; }
     if ($a[3] ne $a[15]) { print OUT3 "discrepancy in right-border\t",join("\t",@a),"\n"; }
-    my $cid=$a[0]."_".$start;
-    for(my $i=$start+1; $i<=$end; $i++){ $cid=$cid."|".$i; }
-    if (exists $usedcid{$cid}) { next;} else { $usedcid{$cid}=1; }
+    my $cid="";
+    # fix wrong circRNA borders due to sequencing error in the reads 
+    if (($do_fix eq 1) and (($a[2] ne $a[10]) or ($a[3] ne $a[15]))) {
+        my @tmpa0=split(/\_/,$a[0]);
+        my @b=split("\t",$anno{$left[0]}{1+$start-1});
+        $tmpa0[2]=$b[3];
+        @b=split("\t",$anno{$left[0]}{$Nr+$start-1});
+        $tmpa0[1]=$b[4];
+        $tmpa0[3]=substr($tmpa0[3],0,1).abs($tmpa0[2] - $tmpa0[1]);
+        my $a0=join("_",@tmpa0);
+        $cid=$a0."_".$start;
+        for(my $i=$start+1; $i<=$end; $i++){ $cid=$cid."|".$i; }
+        if (exists $usedcid{$cid}) { next;}
+        else {
+            # $usedcid{$cid}=1; # meaning the borders from annotation are NOT as good as the predicted ones, hense keep the predicted one
+            $cid=$a[0]."_".$start;
+            for(my $i=$start+1; $i<=$end; $i++){ $cid=$cid."|".$i; }
+            $usedcid{$cid}=1;
+        }
+    }
+    else {
+        $cid=$a[0]."_".$start;
+        for(my $i=$start+1; $i<=$end; $i++){ $cid=$cid."|".$i; }
+        if (exists $usedcid{$cid}) { next;} else { $usedcid{$cid}=1; }
+    }
     $cidstat{$cid}=1;
     if ($debug > 0) { print $cid,"\n"; }
     my $biotype=$a[8];
     my $gene_name=$a[6];
     my $gene_name2=$left[0];
+    my $exonL=-1;
+    my $exonR=-1;
     for(my $i=1; $i<=$Nr; $i++) {
         my @b=split("\t",$anno{$left[0]}{$i+$start-1});
         if ($debug > 0) {print join("\t",@b),"\n";}
@@ -231,15 +255,17 @@ while(<IN>) {
         my $tmp_e=$b[4];
         if (($tmp_s <= $a[3]) and ($a[3] <= $tmp_e)) { $tmp_s=$a[3]; }
         elsif (($tmp_s <= $a[2]) and ($a[2] <= $tmp_e)) { $tmp_e=$a[2]; }
-        if ($do_fix eq 1) {
-            if ($i eq 1) { $tmp_s=$b[3];}
-            elsif($i eq $Nr) { $tmp_e=$b[4]; }
-        }
+        #if ($do_fix eq 1) {
+        #    if ($i eq 1) { $tmp_s=$b[3]; $a[3]=$b[3];}
+        #    elsif($i eq $Nr) { $tmp_e=$b[4]; $a[2]=$b[4];}
+        #}
         if ($debug > 0) {print join("\t",$b[0],$b[1],$b[2],$tmp_s,$tmp_e,$b[5],$b[6],$b[7]),"\n";}
         print OUT join("\t",$b[0],$b[1],$b[2],$tmp_s,$tmp_e,$b[5],$b[6],$b[7],$info),"\n";
         $ExonL[$i-1]=$tmp_s;
         $ExonR[$i-1]=$tmp_e;
         $ExonLen[$i-1]=$tmp_e+1-$tmp_s;
+        if ($exonL eq -1) { $exonL=$tmp_s-1; $exonR=$tmp_e; }
+        else { $exonL=$exonL.",".($tmp_s-1); $exonR=$exonR.",".$tmp_e; }
     }
     #if (($do_fix eq 1) and (($ExonL[0] ne $a[3]) or ($ExonR[$Nr-1] ne $a[2]))) {
     #    print OUT3 "fix-border\t",join("\t",@a),"\n";
@@ -248,7 +274,7 @@ while(<IN>) {
     #    $ExonLen[0]=$ExonR[0]+1-$ExonL[0];
     #    $ExonLen[$Nr-1]=$ExonR[$Nr-1]+1-$ExonL[$Nr-1];
     #}
-    print OUTrefFlat join("\t",$a[6],$cid,$a[1],$strand,$a[3],$a[2]+1,$a[3],$a[3],$Nr,join(",",@ExonL),join(",",@ExonR),$a[17],$a[18],$a[19],$a[21],$a[22],$a[23]),"\n";
+    print OUTrefFlat join("\t",$a[6],$cid,$a[1],$strand,$a[3]-1,$a[2],$a[3]-1,$a[3]-1,$Nr,$exonL,$exonR,$a[17],$a[18],$a[19],$a[21],$a[22],$a[23]),"\n";
     if (($make_combi > 0) and ($Nr > 2) and ($max_AS >= $Nr)) {
         my $apase="1";
         for(my $k=0; $k<($Nr-3); $k++){ $apase=$apase."1"; }
@@ -326,16 +352,16 @@ while(<IN>) {
             my $cid=$cid0."_".$nstart;
             for(my $tmp=$nstart+1; $tmp<=$nend; $tmp++) { $cid=$cid."|".$tmp; }
             if (exists $usedcid{$cid}) { next;} else { $usedcid{$cid}=1; }
-            $cidstat{$cid}=1;
+            #$cidstat{$cid}=1;
             if ($debug > 0) { print $cid,"\n",$i,"\t",$j,"\n";}
             for(my $k=1; $k<=($nend - $nstart +1); $k++) {
                 my @b=split("\t",$anno{$left[0]}{$k+$nstart-1});
                 my $info=join(" ","gene_id","\"$cid\"\;","transcript_id","\"$cid\"\;","gene_name","\"$gene_name\"\;","gene_name2","\"$gene_name2\"\;","exon_number","\"$k\"");
                 print OUT join("\t",$b[0],$b[1],$b[2],$b[3],$b[4],$b[5],$b[6],$b[7],$info),"\n";
-                if ($exonL eq "") { $exonL=$b[3]; } else { $exonL=$exonL.",".$b[3]; }
+                if ($exonL eq "") { $exonL=$b[3]-1; } else { $exonL=$exonL.",".($b[3]-1); }
                 if ($exonR eq "") { $exonR=$b[4]; } else { $exonR=$exonR.",".$b[4]; }
             }
-            print OUTrefFlat join("\t",$a[6],$cid,$a[1],$strand,$nleftmost,$nrightmost,$nleftmost,$nleftmost,($nend - $nstart +1),$exonL,$exonR,$a[17],$a[18],$a[19],$a[21],$a[22],$a[23]),"\n";
+            print OUTrefFlat join("\t",$a[6],$cid,$a[1],$strand,$nleftmost-1,$nrightmost,$nleftmost-1,$nleftmost-1,($nend - $nstart +1),$exonL,$exonR,$a[17],$a[18],$a[19],$a[21],$a[22],$a[23]),"\n";
 
             # generate all possible alternative splicing events that can be determined given $libInsertSize
             if (($make_combi > 0) and ($Nr > 2)  and ($max_AS >= $Nr)) {
