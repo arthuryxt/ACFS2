@@ -86,14 +86,16 @@ if (exists $SPEC{"trans_splicing_maxSpan"}) { $ts_maxSpan=$SPEC{"trans_splicing_
 if (exists $SPEC{"UNMAP2"}) {
     if ((exists $SPEC{"bowtie2_folder"}) and ($SPEC{"UNMAP_expr"} eq "no")) {
         $UNMAP2=$SPEC{"UNMAP2"};
-        $stranded="no";
-        print "PE information will be used for abundance quantification. No strandess information is used.\n";
+        print "PE information will be used for abundance quantification.\n";
+        #$stranded="no";
+        #print "No strandness information is used.\n";
     }
     elsif (!exists $SPEC{"bowtie2_folder"})  {
         die "ERROR: Bowtie2 is needed for quantification using PE reads. Please provide the path to bowtie2.\n";
     }
     elsif ($SPEC{"UNMAP_expr"} ne "no") {
-        die "ERROR: No UNMAP_expr is needed when processing PE reads. Please change UNMAP_expr to \"no\"\n";
+        $SPEC{"UNMAP_expr"}="no";
+        warn "WARNing: No UNMAP_expr is needed when processing PE reads.  Changing UNMAP_expr to \"no\"\n";
     }
 }
 
@@ -264,6 +266,8 @@ if (($search_trans_splicing eq "yes") and (!exists $SPEC{"UNMAP2"})) {
         print OUT $command,"\n";
         $command="perl ".$SPEC{"ACF_folder"}."/ACF_fusion_circRNAs.pl fusion_circRNAs temp.unmap.trans.splicing ".$ts_maxSpan." temp.unmap.trans.splicing.expr";
         print OUT $command,"\n";
+        $command="mv temp.unmap.trans.splicing.expr trans.splicing.expr";
+    print OUT $command,"\n";
     }
     else {
         $command=$SPEC{"BWA_folder"}."/bwa index temp.unmap.trans.splicing.tsloci.fa";
@@ -276,14 +280,14 @@ if (($search_trans_splicing eq "yes") and (!exists $SPEC{"UNMAP2"})) {
         print OUT $command,"\n";
         $command="perl ".$SPEC{"ACF_folder"}."/ACF_fusion_circRNAs.pl fusion_circRNAs temp.unmap.trans.splicing ".$ts_maxSpan." temp.unmap.trans.splicing.expr";
         print OUT $command,"\n";
+        $command="mv temp.unmap.trans.splicing.expr trans.splicing.expr";
+    print OUT $command,"\n";
     }
 }
 
 print OUT "date\n";
 
 if ($remove_temp eq "yes") {
-    $command="mv temp.unmap.trans.splicing.expr trans.splicing.expr";
-    print OUT $command,"\n";
     $command="rm -rf temp\*";
     print OUT $command,"\n";
     $command="rm -rf Step*finished";

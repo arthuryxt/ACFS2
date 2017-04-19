@@ -64,8 +64,6 @@ Optional parameters, the values in below are set as default:
 | minJump | 100 | the minimum distance of a back-splice. The smaller, the more likely you can find circles from short exons |
 | maxJump | 2500000 | the maximum distance of a back-splice. The larger, the more likely you can find circles from long genes. The longest human gene is CNTNAP2 which spans 2.3M bp |
 | minSplicingScore | 10 | the minimum score for the sum of splicing strength at both splice site, 10 corresponds to 95% of all human/mouse splice site pairs. One could also set it to a lower value, e.g. zero, and do a post-filtering after running acfs |
-| minSampleCnt | 1 | the minimum number of samples that detect any given circle |
-| minReadCnt | 1 | the minimum number of reads (from all samples) that detect any given circle |
 | minMappingQuality | 20 | the minimum mapping quality of any given sequence |
 | minSpanJunc | 6 | the minimum number of bases reach beyond the back-splice-site. The larger the less likely of false-positive |
 | Coverage | 0.9 | the minimum percentage of any given read is aligned. The larger the more conserved the results are |
