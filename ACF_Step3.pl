@@ -27,7 +27,7 @@ for(my $i=1; $i<$Nr; $i++) {
                 my @b=split("\t",$uniq{$id});
                 my $seqid=$a[0];
                 if ($b[-1]=~m/$seqid/) {
-                    warn "Sequence with ID = $seqid appeared > 1 times. Please check if the input files are duplicated.";
+                    #warn "Sequence with ID = $seqid appeared > 1 times. Please check if the input files are duplicated.";
                 }
                 $b[-1]=$b[-1].",".$seqid;
                 $uniq{$id}=join("\t",@b);
