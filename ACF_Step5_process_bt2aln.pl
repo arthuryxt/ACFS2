@@ -513,10 +513,10 @@ foreach my $read (keys %uniq){
             my @samples=split("\t",$Anno{$read});
             my @stored=split("\t",$EXPR{$tmp[8*$circ]});
             for (my $i=0; $i<scalar(@samples); $i++) { $stored[$i]+=$samples[$i]; }
-            $EXPR{$tmp[0]}=join("\t",@stored);
+            $EXPR{$tmp[8*$circ]}=join("\t",@stored);
         }
         else{
-            $EXPR{$tmp[0]}=$Anno{$read};
+            $EXPR{$tmp[8*$circ]}=$Anno{$read};
         }
     }
     else {
