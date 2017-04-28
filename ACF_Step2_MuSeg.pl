@@ -173,10 +173,24 @@ while(<IN2>) {
 		    $Inner_right[0]=$tmpa[0]; $Inner_right[1]=$tmpb[0]; $Inner_right[2]=$tmpb[1];
 		    if ($Outer_left[0] > $tmpa[0]) {$Outer_left[0] = $tmpa[0]; $Outer_left[1]=$tmpb[0]; $Outer_left[2]=$tmpa[1]; $leftmostrank=$i;}
 		    if ($Outer_right[1] < $tmpb[0]) {$Outer_right[0] = $tmpa[0]; $Outer_right[1]=$tmpb[0]; $Outer_right[2]=$tmpb[1]; $rightmostrank=$i;}
-            if ($debug eq 20) {
-                print join("\t",@Outer_left),"\t\t",join("\t",@Outer_right),"\t\t",join("\t",@Inner_left),"\t\t",join("\t",@Inner_right),"\n";
+            if ($i > 1) {
+                my @tmpaa=split("\t",$a[5*($i-1)+2]);
+                my @tmpbb=split("\t",$a[5*($i-1)+3]);
+                if ($a[5*$i+4] eq "+") {
+                    # R+, so $a[5*$i+3] <= $a[5*($i-1)+3] indicates a BSJ
+                    if ($tmpb[0] < $tmpbb[0]) { $leftmostrank=$i-1; $rightmostrank=$i; }
+                }
+                else {
+                    # R-, so $a[5*$i+3] >= $a[5*($i-1)+3] indicates a BSJ
+                    if ($tmpa[0] > $tmpaa[0]) { $leftmostrank=$i-1; $rightmostrank=$i; }
+                }
             }
             
+            if ($debug eq 20) {
+                print join("\t",$a[5*$i],$a[5*$i+1],$a[5*$i+2],$a[5*$i+3],$a[5*$i+4]),"\n";
+                print join("\t",@Outer_left),"\t\t",join("\t",@Outer_right),"\t\t",join("\t",@Inner_left),"\t\t",join("\t",@Inner_right),"\n";
+                print join("\t","leftmostrank = ",$leftmostrank,"rightmostrank = ",$rightmostrank),"\n";
+            }
 		}
 	
 		# check if Inner border is truely inner
