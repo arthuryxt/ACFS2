@@ -266,8 +266,10 @@ if (($search_trans_splicing eq "yes") and (!exists $SPEC{"UNMAP2"})) {
         print OUT $command,"\n";
         $command="perl ".$SPEC{"ACF_folder"}."/ACF_fusion_circRNAs.pl fusion_circRNAs temp.unmap.trans.splicing ".$ts_maxSpan." temp.unmap.trans.splicing.expr";
         print OUT $command,"\n";
+        $command="mv temp.unmap.trans.splicing.p1.2 trans.splicing.reads";
+        print OUT $command,"\n";
         $command="mv temp.unmap.trans.splicing.expr trans.splicing.expr";
-    print OUT $command,"\n";
+        print OUT $command,"\n";
     }
     else {
         $command=$SPEC{"BWA_folder"}."/bwa index temp.unmap.trans.splicing.tsloci.fa";
@@ -280,8 +282,10 @@ if (($search_trans_splicing eq "yes") and (!exists $SPEC{"UNMAP2"})) {
         print OUT $command,"\n";
         $command="perl ".$SPEC{"ACF_folder"}."/ACF_fusion_circRNAs.pl fusion_circRNAs temp.unmap.trans.splicing ".$ts_maxSpan." temp.unmap.trans.splicing.expr";
         print OUT $command,"\n";
+        $command="mv temp.unmap.trans.splicing.p1.2 trans.splicing.reads";
+        print OUT $command,"\n";
         $command="mv temp.unmap.trans.splicing.expr trans.splicing.expr";
-    print OUT $command,"\n";
+        print OUT $command,"\n";
     }
 }
 
