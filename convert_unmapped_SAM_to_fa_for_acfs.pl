@@ -33,6 +33,7 @@ open(IN, $filein1) or die "Cannot open input_sam : $filein1\n";
 my $max_len=0;
 while (<IN>) {
     chomp;
+    if (m/^#/){next;}
     my @a=split("\t",$_);
     my $cFlag=dec2bin($a[1]);
     my @aFlag=split('',$cFlag);
