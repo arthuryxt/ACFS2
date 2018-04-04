@@ -224,12 +224,12 @@ if (($SPEC{"UNMAP_expr"} eq "no") and (exists $SPEC{"UNMAP2"})) {
     }
 }
 if (exists $SPEC{"UNMAP2"}) {
-    $command="perl ".$SPEC{"ACF_folder"}."get_select_fx_from_pool.pl circRNA_candidates.reads ".$SPEC{"UNMAP"}." circRNA_candidates.reads.R1";
+    $command="perl ".$SPEC{"ACF_folder"}."get_selected_fx_from_pool.pl circRNA_candidates.reads ".$SPEC{"UNMAP"}." circRNA_candidates.reads.R1";
     print OUT $command,"\n";
-    $command="perl ".$SPEC{"ACF_folder"}."get_select_fx_from_pool.pl circRNA_candidates.reads ".$SPEC{"UNMAP2"}." circRNA_candidates.reads.R2";
+    $command="perl ".$SPEC{"ACF_folder"}."get_selected_fx_from_pool.pl circRNA_candidates.reads ".$SPEC{"UNMAP2"}." circRNA_candidates.reads.R2";
     print OUT $command,"\n";
 } else {
-    $command="perl ".$SPEC{"ACF_folder"}."get_select_fx_from_pool.pl circRNA_candidates.reads ".$SPEC{"UNMAP"}." circRNA_candidates.reads.R1";
+    $command="perl ".$SPEC{"ACF_folder"}."get_selected_fx_from_pool.pl circRNA_candidates.reads ".$SPEC{"UNMAP"}." circRNA_candidates.reads.R1";
     print OUT $command,"\n";
 }
 
