@@ -223,7 +223,15 @@ if (($SPEC{"UNMAP_expr"} eq "no") and (exists $SPEC{"UNMAP2"})) {
         print OUT $command,"\n";
     }
 }
-
+if (exists $SPEC{"UNMAP2"}) {
+    $command="perl ".$SPEC{"ACF_folder"}."get_select_fx_from_pool.pl circRNA_candidates.reads ".$SPEC{"UNMAP"}." circRNA_candidates.reads.R1";
+    print OUT $command,"\n";
+    $command="perl ".$SPEC{"ACF_folder"}."get_select_fx_from_pool.pl circRNA_candidates.reads ".$SPEC{"UNMAP2"}." circRNA_candidates.reads.R2";
+    print OUT $command,"\n";
+} else {
+    $command="perl ".$SPEC{"ACF_folder"}."get_select_fx_from_pool.pl circRNA_candidates.reads ".$SPEC{"UNMAP"}." circRNA_candidates.reads.R1";
+    print OUT $command,"\n";
+}
 
 $command="perl ".$SPEC{"ACF_folder"}."/get_bed12_from_refFlat.pl circRNA_candidates.bed12 circRNA_candidates_refFlat circRNA_candidates_expr circRNA_candidates.bed12";
 print OUT $command,"\n";
@@ -266,9 +274,9 @@ if (($search_trans_splicing eq "yes") and (!exists $SPEC{"UNMAP2"})) {
         print OUT $command,"\n";
         $command="perl ".$SPEC{"ACF_folder"}."/ACF_fusion_circRNAs.pl fusion_circRNAs temp.unmap.trans.splicing ".$ts_maxSpan." temp.unmap.trans.splicing.expr";
         print OUT $command,"\n";
-        $command="mv temp.unmap.trans.splicing.p1.2 trans.splicing.reads";
+        $command="mv temp.unmap.trans.splicing.p1.2 circRNA_candidates.trans.splicing.reads";
         print OUT $command,"\n";
-        $command="mv temp.unmap.trans.splicing.expr trans.splicing.expr";
+        $command="mv temp.unmap.trans.splicing.expr circRNA_candidates.trans.splicing.expr";
         print OUT $command,"\n";
     }
     else {
@@ -282,9 +290,9 @@ if (($search_trans_splicing eq "yes") and (!exists $SPEC{"UNMAP2"})) {
         print OUT $command,"\n";
         $command="perl ".$SPEC{"ACF_folder"}."/ACF_fusion_circRNAs.pl fusion_circRNAs temp.unmap.trans.splicing ".$ts_maxSpan." temp.unmap.trans.splicing.expr";
         print OUT $command,"\n";
-        $command="mv temp.unmap.trans.splicing.p1.2 trans.splicing.reads";
+        $command="mv temp.unmap.trans.splicing.p1.2 circRNA_candidates.trans.splicing.reads";
         print OUT $command,"\n";
-        $command="mv temp.unmap.trans.splicing.expr trans.splicing.expr";
+        $command="mv temp.unmap.trans.splicing.expr circRNA_candidates.trans.splicing.expr";
         print OUT $command,"\n";
     }
 }

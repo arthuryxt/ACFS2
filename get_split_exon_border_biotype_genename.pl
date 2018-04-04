@@ -22,6 +22,7 @@ for(my $fileNr=1; $fileNr<$fileins; $fileNr++) {
         open(IN, $ARGV[$fileNr]);
         while(<IN>) {
             chomp;
+            if (m/^#/) {next;}
             my @a=split("\t",$_);
             # MT      protein_coding  exon    3307    4262    .       +       .        gene_id "ENSG00000198888"; transcript_id "ENST00000361390"; exon_number "1"; gene_name "MT-ND1"; gene_biotype "protein_coding"; transcript_name "MT-ND1-201";
             if ($a[2] eq "exon") {
@@ -37,7 +38,8 @@ for(my $fileNr=1; $fileNr<$fileins; $fileNr++) {
                     if ($b[$i] eq "gene_id") {$gene_id=$b[$i+1];}
                     elsif ($b[$i] eq "transcript_id") {$transcript_id=$b[$i+1];}
                     elsif ($b[$i] eq "gene_name") {$gene_name=$b[$i+1];}
-                    elsif ($b[$i] eq "gene_biotype") {$gene_biotype=$b[$i+1];}
+                    elsif ($b[$i] eq "gene_biotype") {$gene_biotype=$b[$i+1];}  # ensembl
+                    elsif ($b[$i] eq "gene_type") {$gene_biotype=$b[$i+1];}     # gencode
                 }
                 if ($gene_name eq "") {$gene_name=$gene_id;}
                 my $id=$gene_id."\t".$a[0]."\t".$a[6];
@@ -234,5 +236,6 @@ foreach my $id (keys %uniq) {
         else { $splicing=$splicing."1"; }
         print OUT join("\t",$chrinfo[1],"split","exon",$FStart[$i],$FEnd[$i],$biotype{$id},$chrinfo[2],$Gname{$id},$chrinfo[0]."___".$i."___".$Fr."___".$splicing),"\n";
     }
-    print OUT2 join("\t",$chrinfo[1],"split","exon",$FStart[1],$FEnd[$exoncnt],$biotype{$id},$chrinfo[2],$Gname{$id},$chrinfo[0]),"\n";
+    #print OUT2 join("\t",$chrinfo[1],"split","exon",$FStart[1],$FEnd[$exoncnt],$biotype{$id},$chrinfo[2],$Gname{$id},$chrinfo[0]),"\n";
+    print OUT2 join("\t",$chrinfo[1],"split","exon",$FStart[1],$FEnd[$Fr],$biotype{$id},$chrinfo[2],$Gname{$id},$chrinfo[0]),"\n";
 }

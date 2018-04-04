@@ -20,6 +20,13 @@ my $verbose=0;
 if (scalar(@ARGV) > 6) { $verbose=$ARGV[6]; }
 my $Error_rate=0.15;
 
+sub dec2bin {
+    my $str = unpack("B32", pack("N", shift));
+    #$str =~ s/^0+(?=\d)//; # otherwise you'll get leading zeros return $str;
+    my $decode = substr($str,-12);
+    return $decode;
+}
+
 my %uniq1;
 my %uniq2;
 open(IN, $filein1) or die "Cannot open input_sam : $filein1\n";
@@ -27,22 +34,34 @@ my $max_len=0;
 while (<IN>) {
     chomp;
     my @a=split("\t",$_);
-    if ($a[2] ne "*") {next;}
+    my $cFlag=dec2bin($a[1]);
+    my @aFlag=split('',$cFlag);
     my $len=length($a[9]);
     if ($len < $min_len) { next; }
     if ($len > $max_len) { $max_len=$len; }
-    if ($a[1] eq 4) {
-        # single-end data
-        $uniq1{$a[0]}=$a[9];
+    if ($aFlag[-1] eq 0) {
+        # SE
+        if ($aFlag[-3] eq 1) { $uniq1{$a[0]}=$a[9]; }
     }
-    elsif ($a[1] eq 69){
-        # pair-end data, read-1
-        $uniq1{$a[0]}=$a[9];
+    else {
+        # PE
+        if (($aFlag[-3] eq 1) and ($aFlag[-7] eq 1)) { $uniq1{$a[0]}=$a[9]; }
+        if (($aFlag[-3] eq 1) and ($aFlag[-8] eq 1)) { $uniq2{$a[0]}=$a[9]; }
     }
-    elsif ($a[1] eq 133){
-        # pair-end data, read-2
-        $uniq2{$a[0]}=$a[9];
-    }
+    
+    #if ($a[2] ne "*") {next;}
+    #if ($a[1] eq 4) {
+    #    # single-end data
+    #    $uniq1{$a[0]}=$a[9];
+    #}
+    #elsif ($a[1] eq 69){
+    #    # pair-end data, read-1
+    #    $uniq1{$a[0]}=$a[9];
+    #}
+    #elsif ($a[1] eq 133){
+    #    # pair-end data, read-2
+    #    $uniq2{$a[0]}=$a[9];
+    #}
     #if (exists $uniq1{$a[0]}) { $uniq2{$a[0]}=$a[9];}
     #else { $uniq1{$a[0]}=$a[9]; }
 }

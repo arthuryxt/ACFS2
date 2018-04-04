@@ -25,18 +25,15 @@ while(<IN1>) {
     next unless m/^>/;
     s/>//;
     my @a=split("\t",$_);
+    my $seq=<IN1>;
     if ($select eq 1) {
         if (exists $uniq{$a[0]}) {
-            print OUT1 ">".$_,"\n";
-            my $seq=<IN1>;
-            print OUT1 $seq;
+            print OUT1 ">".join("\t",@a),"\n",$seq;
         }
     }
     else {
         if (!exists $uniq{$a[0]}) {
-            print OUT1 ">".$_,"\n";
-            my $seq=<IN1>;
-            print OUT1 $seq;
+            print OUT1 ">".join("\t",@a),"\n",$seq;
         }
     }
     
